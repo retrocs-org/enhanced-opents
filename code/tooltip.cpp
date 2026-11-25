@@ -13,6 +13,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "tooltip.h"
 
 #include "data.h"
@@ -140,7 +142,7 @@ void ToolTipManager::Follow_Pointer(int x, int y)
 		return;
 	}
 
-	bool const warm = CurrentToolTip != NULL || (WasShown && timeGetTime() - HiddenAt <= (unsigned long)TOOLTIP_RESHOW);
+	bool const warm = CurrentToolTip != NULL || (WasShown && timeGetTime() - HiddenAt <= (uint32_t)TOOLTIP_RESHOW);
 	Reset_Current();
 
 	bool const now = warm && under != NULL && !under->TracksPointer && !IsDismissed;
@@ -155,7 +157,7 @@ void ToolTipManager::Follow_Pointer(int x, int y)
 /// </summary>
 void ToolTipManager::Service(void)
 {
-	if (IsActive != true || !TimerRunning || (long)(timeGetTime() - TimerDue) < 0) {
+	if (IsActive != true || !TimerRunning || (int32_t)(timeGetTime() - TimerDue) < 0) {
 		return;
 	}
 
@@ -187,7 +189,7 @@ void ToolTipManager::Service(void)
 void ToolTipManager::Start_Timer(int delay)
 {
 	TimerRunning = true;
-	TimerDue = timeGetTime() + (unsigned long)delay;
+	TimerDue = timeGetTime() + (uint32_t)delay;
 }
 
 

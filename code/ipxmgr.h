@@ -110,6 +110,8 @@
 #pragma once
 
 
+
+#include <cstdint>
 /*
 ********************************* Includes **********************************
 */
@@ -164,7 +166,7 @@ class IPXManagerClass : public ConnManClass
 		 */
 		void Configure_LAN(unsigned short port = 0);
 		void Configure_Direct();
-		void Configure_Tunnel(unsigned short local_id, unsigned long tunnel_ip, unsigned short tunnel_port);
+		void Configure_Tunnel(unsigned short local_id, uint32_t tunnel_ip, unsigned short tunnel_port);
 		void Configure_Direct_Peers(unsigned short listen_port);
 		void Add_Peer(const IPXAddressClass &address);
 		void Shutdown();

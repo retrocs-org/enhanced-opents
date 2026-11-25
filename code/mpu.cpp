@@ -32,6 +32,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "mpu.h"
 
 #include "win.h"
@@ -150,8 +152,8 @@ void Reset_Float_State(void)
 // # of MHz to allow samplings to deviate from average of samplings.
 #define TOLERANCE			1
 
-static unsigned long TSC_Low;
-static unsigned long TSC_High;
+static uint32_t TSC_Low;
+static uint32_t TSC_High;
 
 /// <summary>
 /// Samples the processor's time stamp counter.
@@ -163,8 +165,8 @@ void RDTSC(void)
 {
 	unsigned long long const stamp = __rdtsc();
 
-	TSC_Low = (unsigned long)(stamp & 0xFFFFFFFF);
-	TSC_High = (unsigned long)(stamp >> 32);
+	TSC_Low = (uint32_t)(stamp & 0xFFFFFFFF);
+	TSC_High = (uint32_t)(stamp >> 32);
 }
 
 
@@ -241,7 +243,7 @@ int Get_RDTSC_CPU_Speed(void)
 			QueryPerformanceCounter(&t1);
 		}
 
-		stamp0 = (unsigned long)(__rdtsc() & 0xFFFFFFFF);
+		stamp0 = (uint32_t)(__rdtsc() & 0xFFFFFFFF);
 
 		t0.LowPart = t1.LowPart;		// Reset Initial Time
 		t0.HighPart = t1.HighPart;
@@ -254,7 +256,7 @@ int Get_RDTSC_CPU_Speed(void)
 			QueryPerformanceCounter(&t1);
 		}
 
-		stamp1 = (unsigned long)(__rdtsc() & 0xFFFFFFFF);
+		stamp1 = (uint32_t)(__rdtsc() & 0xFFFFFFFF);
 
 
 		cycles = stamp1 - stamp0;					// # of cycles passed between reads

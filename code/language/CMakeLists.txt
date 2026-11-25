@@ -1,3 +1,26 @@
+if(OPENTS_POSIX)
+    # Off Windows there is no resource DLL. The string tables of language.rc are compiled into
+    # a generated table that the game links directly; see platform/posix/langstrings.cpp.
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(OPENTS_LANGTABLE "${OPENTS_GENERATED_DIR}/opents_langtable.inc")
+    add_custom_command(
+        OUTPUT "${OPENTS_LANGTABLE}"
+        COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/tools/rcstrings.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/language.rc"
+            "${CMAKE_CURRENT_SOURCE_DIR}/language.h"
+            "${OPENTS_LANGTABLE}"
+        DEPENDS
+            "${CMAKE_SOURCE_DIR}/tools/rcstrings.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/language.rc"
+            "${CMAKE_CURRENT_SOURCE_DIR}/language.h"
+        COMMENT "Generating the string table from language.rc"
+        VERBATIM
+    )
+    add_custom_target(OpenTSLanguageTable DEPENDS "${OPENTS_LANGTABLE}")
+    add_dependencies(OpenTS OpenTSLanguageTable)
+    return()
+endif()
+
 file(GLOB_RECURSE LANG_SRC CONFIGURE_DEPENDS
     "*.cpp" "*.c" "*.cc" "*.rc"
     "*.h" "*.hpp" "*.hm"

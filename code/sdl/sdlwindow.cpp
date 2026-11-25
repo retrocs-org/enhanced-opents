@@ -17,11 +17,16 @@
 #include "sdl/sdlkeys.h"
 #include "win.h"
 
+#if defined(_WIN32)
 #include <commctrl.h>
+#endif
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#if defined(__APPLE__)
+#include <SDL3/SDL_metal.h>
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -141,6 +146,7 @@ void Dispatch(WindowEvent const & event)
 }
 
 
+#if defined(_WIN32)
 HWND Window_Handle(void)
 {
 	if (_Window == nullptr) {
@@ -148,6 +154,19 @@ HWND Window_Handle(void)
 	}
 	return((HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(_Window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
 }
+#else
+// Off Windows the engine's HWND is only ever compared with NULL, so the SDL window stands in.
+HWND Window_Handle(void)
+{
+	return((HWND)_Window);
+}
+
+#if defined(__APPLE__)
+// bgfx draws into the Metal layer of a view SDL adds to the window, which follows the window's
+// size and backing scale.
+SDL_MetalView _MetalView = nullptr;
+#endif
+#endif
 
 
 void Post_Event(Uint32 type)
@@ -161,6 +180,7 @@ void Post_Event(Uint32 type)
 }
 
 
+#if defined(_WIN32)
 // Windows can end the capture while the window keeps the focus, for a system menu or another
 // window taking the mouse, and SDL reports neither. The window's own releases are ignored.
 LRESULT CALLBACK Watch_Messages(HWND window, UINT message, WPARAM wparam, LPARAM lparam, UINT_PTR, DWORD_PTR)
@@ -176,6 +196,7 @@ LRESULT CALLBACK Watch_Messages(HWND window, UINT message, WPARAM wparam, LPARAM
 	}
 	return(result);
 }
+#endif
 
 
 void Handle_SDL_Event(SDL_Event const & sdlevent)
@@ -277,15 +298,19 @@ bool Start_SDL(void)
 
 	Set_Hints();
 
+#if defined(_WIN32)
 	// The window class keeps the game's own name, which tools looking for the window use.
 	if (!SDL_RegisterApp("Tiberian Sun", 0, ProgramInstance)) {
 		DebugString("SDL: the window class was not registered: %s\n", SDL_GetError());
 	}
+#endif
 	SDL_SetMainReady();
 
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		DebugString("SDL: video did not start: %s\n", SDL_GetError());
+#if defined(_WIN32)
 		SDL_UnregisterApp();
+#endif
 		return(false);
 	}
 
@@ -348,13 +373,22 @@ void Main_Window_Destroy(void)
 	if (_Window != nullptr) {
 		SDL_RemoveEventWatch(Watch_Window, nullptr);
 		SDL_RemoveEventWatch(Watch_Keys, nullptr);
+#if defined(_WIN32)
 		RemoveWindowSubclass(Window_Handle(), Watch_Messages, WindowSubclass);
+#elif defined(__APPLE__)
+		if (_MetalView != nullptr) {
+			SDL_Metal_DestroyView(_MetalView);
+			_MetalView = nullptr;
+		}
+#endif
 		SDL_DestroyWindow(_Window);
 		_Window = nullptr;
 	}
 
 	SDL_Quit();
+#if defined(_WIN32)
 	SDL_UnregisterApp();
+#endif
 	_Started = false;
 }
 
@@ -373,6 +407,9 @@ bool Main_Window_Create(bool windowed, int width, int height, MainWindowIcon con
 
 	SDL_WindowFlags flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 	flags |= windowed ? SDL_WINDOW_RESIZABLE : SDL_WINDOW_FULLSCREEN;
+#if defined(__APPLE__)
+	flags |= SDL_WINDOW_METAL;
+#endif
 
 	_Window = SDL_CreateWindow("Tiberian Sun", width, height, flags);
 	if (_Window == nullptr) {
@@ -408,7 +445,14 @@ bool Main_Window_Create(bool windowed, int width, int height, MainWindowIcon con
 
 	SDL_AddEventWatch(Watch_Window, nullptr);
 	SDL_AddEventWatch(Watch_Keys, nullptr);
+#if defined(_WIN32)
 	SetWindowSubclass(Window_Handle(), Watch_Messages, WindowSubclass, 0);
+#elif defined(__APPLE__)
+	_MetalView = SDL_Metal_CreateView(_Window);
+	if (_MetalView == nullptr) {
+		DebugString("SDL: the Metal view was not created: %s\n", SDL_GetError());
+	}
+#endif
 	_Input.Reset();
 
 	if (!_Unattended) {
@@ -427,7 +471,23 @@ NativeWindow Main_Window_Native(void)
 {
 	NativeWindow window = { NATIVE_WINDOW_DEFAULT, nullptr, nullptr };
 	if (_Window != nullptr) {
-		window.Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(_Window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+		SDL_PropertiesID const properties = SDL_GetWindowProperties(_Window);
+#if defined(_WIN32)
+		window.Handle = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#elif defined(__APPLE__)
+		window.Handle = (_MetalView != nullptr) ? SDL_Metal_GetLayer(_MetalView)
+			: SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+#else
+		void * const wayland = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
+		if (wayland != nullptr) {
+			window.Type = NATIVE_WINDOW_WAYLAND;
+			window.Handle = wayland;
+			window.Display = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
+		} else {
+			window.Handle = (void *)(uintptr_t)SDL_GetNumberProperty(properties, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+			window.Display = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
+		}
+#endif
 	}
 	return(window);
 }
@@ -555,20 +615,28 @@ void Main_Window_Pump_Events(void)
 
 void Main_Window_Request_Repaint(void)
 {
+#if defined(_WIN32)
 	HWND const window = Window_Handle();
 	if (window != NULL) {
 		InvalidateRect(window, NULL, FALSE);
 	}
+#endif
 }
 
 
 // SDL_RaiseWindow would take the foreground from another program.
 void Main_Window_Take_Focus(void)
 {
+#if defined(_WIN32)
 	HWND const window = Window_Handle();
 	if (window != NULL) {
 		SetFocus(window);
 	}
+#else
+	if (_Window != nullptr) {
+		SDL_RaiseWindow(_Window);
+	}
+#endif
 }
 
 
@@ -579,18 +647,24 @@ void Main_Window_Capture_Mouse(bool capture)
 	}
 	SDL_CaptureMouse(capture);
 
+#if defined(_WIN32)
 	// SDL still records a capture Windows took away, so it does not ask for it again.
 	HWND const window = Window_Handle();
 	if (capture && (SDL_GetWindowFlags(_Window) & SDL_WINDOW_MOUSE_CAPTURE) != 0 && GetCapture() != window) {
 		SetCapture(window);
 	}
+#endif
 }
 
 
 bool Main_Window_Mouse_Captured(void)
 {
+#if defined(_WIN32)
 	HWND const window = Window_Handle();
 	return(window != NULL && GetCapture() == window);
+#else
+	return(_Window != nullptr && (SDL_GetWindowFlags(_Window) & SDL_WINDOW_MOUSE_CAPTURE) != 0);
+#endif
 }
 
 

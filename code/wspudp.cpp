@@ -41,6 +41,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "wspudp.h"
 
 #include "dbgprint.h"
@@ -123,7 +125,7 @@ void UDPInterfaceClass::Enable_Broadcast(bool enable)
 /// <param name="local_id">The ID the tunnel server knows us by.</param>
 /// <param name="tunnel_ip">Address of the tunnel server.</param>
 /// <param name="tunnel_port">Port of the tunnel server. Zero turns tunnelling off.</param>
-void UDPInterfaceClass::Configure_Tunnel(unsigned short local_id, unsigned long tunnel_ip, unsigned short tunnel_port)
+void UDPInterfaceClass::Configure_Tunnel(unsigned short local_id, uint32_t tunnel_ip, unsigned short tunnel_port)
 {
 	TunnelID = local_id;
 	TunnelIP = tunnel_ip;

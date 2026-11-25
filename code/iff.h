@@ -31,6 +31,8 @@
 
 #pragma once
 
+
+#include <cstdint>
 class Buffer;
 
 #define LZW_SUPPORTED			FALSE
@@ -136,7 +138,7 @@ extern void __cdecl Pack_2_Plane(void *buffer, void * pageptr, int planebit);
 /* The following prototypes are for the file: LCWCOMP.ASM						*/
 /*=========================================================================*/
 
-extern unsigned long __cdecl LCW_Compress(void *source, void *dest, unsigned long length);
+extern uint32_t __cdecl LCW_Compress(void *source, void *dest, uint32_t length);
 
 #ifdef __cplusplus
 }

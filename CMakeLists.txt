@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.23)
 
+# The macOS build uses std::format and std::to_chars on floating point, which Apple's C++
+# library provides from macOS 13.3.
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS version")
+endif()
+
 project(OpenTS VERSION 0.3.0 LANGUAGES C CXX)
 
 # The SemVer prerelease label, set apart because project() accepts only numbers. With "beta1",
@@ -26,7 +32,14 @@ option(OPENTS_DESKTOP_TESTS "Register the tests that need an otherwise idle desk
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+if(APPLE OR (UNIX AND NOT WIN32))
+    # The POSIX port builds with Clang (AppleClang on macOS) or GCC. It targets 64-bit hosts
+    # only: macOS arm64 and x86_64, and Linux for continuous compile checks.
+    if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+        message(FATAL_ERROR "The POSIX port of OpenTS targets 64-bit hosts only.")
+    endif()
+    set(OPENTS_POSIX ON)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
    AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     if(NOT OPENTS_EXPERIMENTAL_CLANG_CL)
         message(FATAL_ERROR
@@ -48,12 +61,22 @@ else()
         "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
 endif()
 
-string(TOLOWER "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}" OPENTS_ARCH)
+if(OPENTS_POSIX)
+    if(CMAKE_OSX_ARCHITECTURES)
+        string(TOLOWER "${CMAKE_OSX_ARCHITECTURES}" OPENTS_ARCH)
+    else()
+        string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENTS_ARCH)
+    endif()
+else()
+    string(TOLOWER "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}" OPENTS_ARCH)
+endif()
 if(NOT OPENTS_ARCH)
     set(OPENTS_ARCH "unknown")
 endif()
 
-enable_language(RC)
+if(WIN32)
+    enable_language(RC)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -108,5 +131,14 @@ add_subdirectory(thirdparty)
 add_subdirectory(code)
 add_subdirectory(code/language)
 
-enable_testing()
-add_subdirectory(tests)
+# The harnesses are written against the Windows build; the POSIX port leaves them out unless
+# asked for.
+if(OPENTS_POSIX)
+    option(OPENTS_BUILD_TESTS "Build the test harnesses" OFF)
+else()
+    option(OPENTS_BUILD_TESTS "Build the test harnesses" ON)
+endif()
+if(OPENTS_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

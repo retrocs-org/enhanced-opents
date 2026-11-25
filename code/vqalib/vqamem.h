@@ -1,3 +1,4 @@
+#include <cstdint>
 /*******************************************************************************
  *                                O P E N  T S
  *******************************************************************************
@@ -41,8 +42,8 @@
 
 /* Prototypes */
 #ifdef __WATCOMC__
-void DPMI_Lock(void const *ptr, long const size);
-void DPMI_Unlock(void const *ptr, long const size);
+void DPMI_Lock(void const *ptr, int32_t const size);
+void DPMI_Unlock(void const *ptr, int32_t const size);
 #else
 #define DPMI_Lock(a,b)
 #define DPMI_Unlock(a,b)

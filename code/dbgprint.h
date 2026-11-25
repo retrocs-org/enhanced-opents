@@ -13,6 +13,8 @@
 
 #pragma once
 
+
+#include <cstdint>
 #include <filesystem>
 
 #if defined(_WIN32)
@@ -29,7 +31,7 @@ void Debug_Init(int argc, wchar_t const * argv[]);
 void Debug_Init(void);
 
 // Dedicated reporting function for GetLastError() on Windows.
-char const * Last_Error_Text(unsigned long error);
+char const * Last_Error_Text(uint32_t error);
 
 #else
 

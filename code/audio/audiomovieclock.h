@@ -39,12 +39,12 @@ class AudioMovieClockClass
 
 		// consumed: frames the mixer has taken; repeated: blocks the player fed
 		// twice while starved; wall: the caller's wall clock in ticks.
-		unsigned long Ticks(uint32_t consumed, unsigned repeated, unsigned long wall)
+		uint32_t Ticks(uint32_t consumed, unsigned repeated, uint32_t wall)
 		{
 			if (Paused) {
 				return(TickCount);
 			}
-			unsigned long t = wall - PauseAdjust;
+			uint32_t t = wall - PauseAdjust;
 			uint32_t behind = Latency + repeated * BlockFrames;
 			uint32_t heard = consumed > behind ? consumed - behind : 0;
 
@@ -56,7 +56,7 @@ class AudioMovieClockClass
 			} else {
 				LastPosition = heard;
 				LastWall = t;
-				TickCount = (unsigned long)((uint64_t)heard * TickRate / Rate);
+				TickCount = (uint32_t)((uint64_t)heard * TickRate / Rate);
 			}
 			return(TickCount);
 		}
@@ -64,7 +64,7 @@ class AudioMovieClockClass
 		void Pause(void) { Paused = true; }
 
 		// Picks the clock up where it stopped, so the pause is not counted.
-		void Resume(unsigned long wall)
+		void Resume(uint32_t wall)
 		{
 			if (Paused) {
 				PauseAdjust = wall - LastWall;
@@ -73,7 +73,7 @@ class AudioMovieClockClass
 		}
 
 		bool Is_Paused(void) const { return(Paused); }
-		unsigned long Pause_Adjust(void) const { return(PauseAdjust); }
+		uint32_t Pause_Adjust(void) const { return(PauseAdjust); }
 
 	private:
 		unsigned Rate;
@@ -81,8 +81,8 @@ class AudioMovieClockClass
 		unsigned Latency;
 		unsigned TickRate;
 		uint32_t LastPosition;
-		unsigned long LastWall;
-		unsigned long TickCount;
-		unsigned long PauseAdjust;
+		uint32_t LastWall;
+		uint32_t TickCount;
+		uint32_t PauseAdjust;
 		bool Paused;
 };

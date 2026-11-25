@@ -352,7 +352,7 @@ bool LoadOptionsClass::Dialog(void)
 void LoadOptionsClass::Pick_Filename(char *name)
 {
 	do {
-		sprintf(name, "SAVE%04lX.%3s", rand(), Extension);
+		sprintf(name, "SAVE%04X.%3s", rand() & 0x7FFF, Extension);
 	} while (Saved_Game_Exists(name));
 }
 

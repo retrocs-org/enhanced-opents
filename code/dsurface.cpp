@@ -47,6 +47,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "dsurface.h"
 
 #include "blit.h"
@@ -118,7 +120,7 @@ DSurface::DSurface(int width, int height) :
 	 */
 	struct {
 		BITMAPINFOHEADER Header;
-		unsigned long Masks[3];
+		uint32_t Masks[3];
 	} info;
 
 	memset(&info, 0, sizeof(info));

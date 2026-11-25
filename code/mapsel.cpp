@@ -121,7 +121,7 @@ const char * Map_Selection(ScenarioClass * scen)
 		return(NULL);
 	}
 
-	DebugString("MapSelect: Scenario - %s, Stage - %ld\n", scen->ScenarioName, scen->Stage);
+	DebugString("MapSelect: Scenario - %s, Stage - %d\n", scen->ScenarioName, scen->Stage);
 
 	return((strlen(scen->ScenarioName) == 0) ? NULL : scen->ScenarioName);
 }

@@ -9,6 +9,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "classfactory.h"
 #include "dbgprint.h"
 
@@ -59,8 +61,8 @@ std::unique_ptr<IPersistent> Create_Object(ClassID const & classid)
 		}
 	}
 
-	DebugString("No class is registered for {%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}\n",
-		(unsigned long)classid.Data1, (unsigned int)classid.Data2, (unsigned int)classid.Data3,
+	DebugString("No class is registered for {%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}\n",
+		(uint32_t)classid.Data1, (unsigned int)classid.Data2, (unsigned int)classid.Data3,
 		classid.Data4[0], classid.Data4[1], classid.Data4[2], classid.Data4[3],
 		classid.Data4[4], classid.Data4[5], classid.Data4[6], classid.Data4[7]);
 	return(nullptr);

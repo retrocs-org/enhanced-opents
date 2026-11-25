@@ -595,13 +595,13 @@ unsigned int ScoreClass::Do_Calc(HouseClass * house)
 	}
 
 	total += remain;
-	DebugString("Remaining: %ld, Total: %ld\n", remain, total);
+	DebugString("Remaining: %d, Total: %d\n", remain, total);
 
 	float build_eco = total > 0 ? ((float)remain / total) : 0.0f;
 
 	DebugString("BuildEconomy = %f\n", build_eco);
 
-	DebugString("Money: %ld, Harvested: %ld, Initial: %ld\n", house->Available_Money(), house->HarvestedCredits, house->Control.InitialCredits);
+	DebugString("Money: %d, Harvested: %d, Initial: %d\n", house->Available_Money(), house->HarvestedCredits, house->Control.InitialCredits);
 
 	total = house->HarvestedCredits + house->Control.InitialCredits;
 	float money_eco = total > 0 ? (float)house->Available_Money() / (float)total : 0.0f;
@@ -612,7 +612,7 @@ unsigned int ScoreClass::Do_Calc(HouseClass * house)
 
 	unsigned int efficiency = (unsigned int)((eco / 2.0) * 100.0);
 
-	DebugString("Efficiency: %ld\n", efficiency);
+	DebugString("Efficiency: %d\n", efficiency);
 
 	return(efficiency);
 }
@@ -635,7 +635,7 @@ void ScoreClass::Do_Graphs(void)
 	for (int hous = 0; hous < Houses.Count(); hous++) {
 
 		HouseClass *hows = Houses[hous];
-		DebugString("Stats: %s - UnitsLost %ld, BuildingsLost %ld\n", hows->Class->IniName.c_str(), hows->UnitsLost, hows->BuildingsLost);
+		DebugString("Stats: %s - UnitsLost %d, BuildingsLost %d\n", hows->Class->IniName.c_str(), hows->UnitsLost, hows->BuildingsLost);
 
 		if ((PlayerPtr->Is_Ally(hows) && hows->Is_Ally(PlayerPtr)) || PlayerPtr == hows) {
 			allyu += hows->UnitsLost;
@@ -645,7 +645,7 @@ void ScoreClass::Do_Graphs(void)
 			enemyb += hows->BuildingsLost;
 		}
 
-		DebugString("AllyUnits %ld, AllyBuildings %ld, EnemyUnits %ld, EnemyBldgs %ld\n", allyu, allyb, enemyu, enemyb);
+		DebugString("AllyUnits %d, AllyBuildings %d, EnemyUnits %d, EnemyBldgs %d\n", allyu, allyb, enemyu, enemyb);
 	}
 
 	if (PlayerPtr->Class->Side == SIDE_GDI) {
@@ -832,7 +832,7 @@ void ScoreClass::Print_Minutes(int time)
 	time		-= minutes * 60;
 	int seconds	 = (unsigned)time;
 
-	sprintf(str, "%02ld:%02ld:%02ld", hours, minutes, seconds);
+	sprintf(str, "%02d:%02d:%02d", hours, minutes, seconds);
 
 	int x = XPos - (BigFont->String_Width(str) / 2) + 542;
 

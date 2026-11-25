@@ -39,6 +39,15 @@ foreach(f ${OPENTS_RAW})
         endif()
     endforeach()
 
+    # Resource scripts have no compiler off Windows; the POSIX port carries their content in
+    # platform/posix instead, and the files there are left out of the Windows build.
+    if(OPENTS_POSIX AND f MATCHES "\\.rc$")
+        set(EXCLUDED TRUE)
+    endif()
+    if(NOT OPENTS_POSIX AND f MATCHES "/platform/posix/")
+        set(EXCLUDED TRUE)
+    endif()
+
     if(NOT EXCLUDED)
         list(APPEND OPENTS_SRC "${f}")
     endif()
@@ -51,7 +60,19 @@ endforeach()
 #
 message(STATUS "${PROJECT_NAME}: Creating '${PROJECT_NAME}' executable...")
 
-add_executable(OpenTS WIN32 ${OPENTS_SRC})
+if(APPLE)
+    set(OPENTS_ICON "${CMAKE_CURRENT_SOURCE_DIR}/platform/posix/macos/OpenTS.icns")
+    if(EXISTS "${OPENTS_ICON}")
+        set_source_files_properties("${OPENTS_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    else()
+        set(OPENTS_ICON "")
+    endif()
+    add_executable(OpenTS MACOSX_BUNDLE ${OPENTS_SRC} ${OPENTS_ICON})
+elseif(OPENTS_POSIX)
+    add_executable(OpenTS ${OPENTS_SRC})
+else()
+    add_executable(OpenTS WIN32 ${OPENTS_SRC})
+endif()
 target_compile_features(OpenTS PRIVATE cxx_std_20)
 
 #
@@ -124,6 +145,34 @@ set(OPENTS_COMPILE_OPTIONS
     >
 )
 
+if(OPENTS_POSIX)
+    # The engine was written for MSVC on x86: signed char, wrapping signed arithmetic, no
+    # strict aliasing, and IEEE single precision without contraction into fused operations.
+    # platform/posix/wincompat.h stands in for the Windows headers and is forced into every
+    # translation unit so the Win32 types and helpers resolve before any engine header.
+    set(OPENTS_COMPILE_OPTIONS
+        -fsigned-char
+        -fwrapv
+        -fno-strict-aliasing
+        -ffp-contract=off
+        -fms-extensions
+        "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/platform/posix/wincompat.h"
+        $<$<CONFIG:Debug>:-O0 -g>
+        $<$<CONFIG:Release>:-O2 -g>
+        $<$<CONFIG:RelWithDebInfo>:-O2 -g>
+        -w
+    )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND OPENTS_COMPILE_OPTIONS
+            -Wno-microsoft
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-c++11-narrowing>
+            $<$<COMPILE_LANGUAGE:CXX>:-fdelayed-template-parsing>
+        )
+    else()
+        list(APPEND OPENTS_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>)
+    endif()
+endif()
+
 target_compile_options(OpenTS PRIVATE ${OPENTS_COMPILE_OPTIONS})
 
 #
@@ -156,7 +205,7 @@ set_source_files_properties(${OPENTS_BGFX_SOURCES} PROPERTIES
         "${BGFX_ROOT}/include;${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bx/include"
     COMPILE_DEFINITIONS
         "BX_CONFIG_DEBUG=$<IF:$<CONFIG:Debug>,1,$<BOOL:${BX_CONFIG_DEBUG}>>"
-    COMPILE_OPTIONS "/Zc:preprocessor"
+    COMPILE_OPTIONS "$<$<BOOL:${MSVC}>:/Zc:preprocessor>"
 )
 
 # The frame quad's shaders come from the imgui example and the overlay's from the debug
@@ -193,11 +242,16 @@ set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ui/rml/rmltexture.cpp" APPEND P
 )
 
 message(STATUS "${PROJECT_NAME}: Adding compilier definitions...")
-target_compile_definitions(OpenTS PRIVATE
-    WIN32
-    _WINDOWS
-    NOMINMAX
-)
+if(OPENTS_POSIX)
+    target_compile_definitions(OpenTS PRIVATE NOMINMAX OPENTS_POSIX=1)
+    target_include_directories(OpenTS PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/platform/posix")
+else()
+    target_compile_definitions(OpenTS PRIVATE
+        WIN32
+        _WINDOWS
+        NOMINMAX
+    )
+endif()
 
 #
 # ---------------------------------------------------------
@@ -227,6 +281,36 @@ target_link_libraries(OpenTS PRIVATE
     RmlUi::Core
     imgui
     SDL3::SDL3-static
+)
+
+if(OPENTS_POSIX)
+    find_package(Threads REQUIRED)
+    # FreeType draws the text platform/posix/gdicompat.cpp stands in GDI for.
+    target_link_libraries(OpenTS PRIVATE freetype Threads::Threads ${CMAKE_DL_LIBS})
+    if(APPLE)
+        target_link_libraries(OpenTS PRIVATE
+            "-framework Cocoa" "-framework Metal" "-framework QuartzCore"
+            "-framework IOKit" "-framework CoreAudio" "-framework AudioToolbox"
+            "-framework CoreFoundation"
+        )
+        # dbgprint.cpp reads the system version from its property list with libxml2, which
+        # the macOS SDK carries.
+        find_package(LibXml2 REQUIRED)
+        target_link_libraries(OpenTS PRIVATE LibXml2::LibXml2)
+        set_target_properties(OpenTS PROPERTIES
+            OUTPUT_NAME "OpenTS"
+            OUTPUT_NAME_DEBUG "OpenTS"
+            OUTPUT_NAME_RELEASE "OpenTS"
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/posix/macos/Info.plist.in"
+            MACOSX_BUNDLE_BUNDLE_NAME "OpenTS"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "net.opents.OpenTS"
+            MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+            MACOSX_BUNDLE_ICON_FILE "OpenTS.icns"
+        )
+    endif()
+else()
+    target_link_libraries(OpenTS PRIVATE
     comctl32
     dbghelp
     iphlpapi
@@ -236,7 +320,8 @@ target_link_libraries(OpenTS PRIVATE
     ws2_32
     kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32
     odbc32 odbccp32
-)
+    )
+endif()
 
 if(MSVC)
     target_link_options(OpenTS PRIVATE
@@ -308,8 +393,14 @@ source_group("Header Files" REGULAR_EXPRESSION ".*\\.(h|hpp)$")
 #
 # The game reads the ui directory from beside the executable. A separate target copies it
 # there, so an edited document reaches the output without a relink.
+# A macOS bundle keeps them in its Resources directory instead, where the game also looks.
+if(APPLE)
+    set(OPENTS_UI_DEST "$<TARGET_BUNDLE_CONTENT_DIR:OpenTS>/Resources/ui")
+else()
+    set(OPENTS_UI_DEST "$<TARGET_FILE_DIR:OpenTS>/ui")
+endif()
 add_custom_target(OpenTSUIFiles ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/ui" "$<TARGET_FILE_DIR:OpenTS>/ui"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/ui" "${OPENTS_UI_DEST}"
     COMMENT "Copying the UI files beside the executable"
     VERBATIM
 )
@@ -327,5 +418,7 @@ set_property(GLOBAL PROPERTY VS_STARTUP_PROJECT OpenTS)
 # ---------------------------------------------------------
 set(NATVIS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/sun.natvis")
 source_group("Natvis Files" FILES ${NATVIS_FILE})
-target_sources(OpenTS PRIVATE ${NATVIS_FILE})
-target_link_options(OpenTS PRIVATE "/NATVIS:${NATVIS_FILE}")
+if(MSVC)
+    target_sources(OpenTS PRIVATE ${NATVIS_FILE})
+    target_link_options(OpenTS PRIVATE "/NATVIS:${NATVIS_FILE}")
+endif()

@@ -52,7 +52,7 @@
 /// bounded call clamps every command against the room left, so a stream claiming more than the
 /// caller allowed is truncated instead of running past the buffer.</param>
 /// <returns>uint32_t; The number of destination bytes written.</returns>
-uint32_t LCW_Uncomp(void const * source, void * dest, unsigned long length)
+uint32_t LCW_Uncomp(void const * source, void * dest, uint32_t length)
 {
 	/*
 	** Uncompress data to the following codes in the format b = byte, w = word
@@ -86,10 +86,10 @@ uint32_t LCW_Uncomp(void const * source, void * dest, unsigned long length)
 
 	for (;;) {
 
-		long maxlen = 0;
+		int32_t maxlen = 0;
 
 		if (bounded) {
-			maxlen = (long)(end - dest_ptr);
+			maxlen = (int32_t)(end - dest_ptr);
 
 			if (maxlen <= 0) {
 				return((uint32_t) (dest_ptr - (unsigned char*) dest));
@@ -120,7 +120,7 @@ uint32_t LCW_Uncomp(void const * source, void * dest, unsigned long length)
 				if (op_code == 0x80) {
 
 					/* Return # of destination bytes written. */
-					return((unsigned long) (dest_ptr - (unsigned char*) dest));
+					return((uint32_t) (dest_ptr - (unsigned char*) dest));
 
 				} else {
 

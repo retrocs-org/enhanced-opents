@@ -116,7 +116,7 @@ void LogicClass::Debug_Dump(MonoClass * mono) const
 
 	_framecounter++;
 	mono->Set_Cursor(0, 0);mono->Printf("%d", AllowVoice);
-	mono->Set_Cursor(1, 1);mono->Printf("%ld", (int)Scen->MissionTimer);
+	mono->Set_Cursor(1, 1);mono->Printf("%d", (int)Scen->MissionTimer);
 	mono->Set_Cursor(10, 1);mono->Printf("%3d", LastFramesPerSecond);
 	mono->Set_Cursor(1, 3);mono->Printf("%02d:%02d:%02d", Scen->MissionTimer / TICKS_PER_HOUR, (Scen->MissionTimer % TICKS_PER_HOUR)/TICKS_PER_MINUTE, (Scen->MissionTimer % TICKS_PER_MINUTE)/TICKS_PER_SECOND);
 

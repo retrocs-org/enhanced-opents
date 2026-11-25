@@ -9,6 +9,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "unvqtblc.h"
 
 #include "_vqa.h"
@@ -478,7 +480,7 @@ void __cdecl UnVQ2_4x2_Table(uint8_t * codebook, uint8_t * pointers, uint8_t * b
 
 #define __int8	char
 #define __int16 short
-#define __int32 long
+#define __int32 int32_t
 
 void __cdecl UnVQ1_4x4_Table(uint8_t * codebook, uint8_t * pointers, uint8_t * buffer, size_t blocksperrow, size_t numrows, size_t bufwidth)
 {
@@ -491,18 +493,18 @@ void __cdecl UnVQ1_4x4_Table(uint8_t * codebook, uint8_t * pointers, uint8_t * b
 
 	bufwidth = 2 * bufwidth;
 	unsigned int total = numrows * bufwidth;
-	unsigned long step = 8 * blocksperrow;
+	uint32_t step = 8 * blocksperrow;
 	unsigned char * data_end = buffer + (total * 4);
 	unsigned char * row_end = buffer + step;
 	unsigned char * row_ptr = buffer;
 	unsigned short * src = (unsigned short *)pointers;
 
-	unsigned long i;
-	unsigned long j;
+	uint32_t i;
+	uint32_t j;
 	unsigned short index;
-	unsigned long type;
+	uint32_t type;
 
-	unsigned long row_step = bufwidth << 2;
+	uint32_t row_step = bufwidth << 2;
 
 	while (buffer < data_end) {
 		type = (*src & 0xE000);
@@ -582,9 +584,9 @@ void __cdecl UnVQ1_4x2_Table(uint8_t * codebook, uint8_t * pointers, uint8_t * b
 	unsigned char * row_ptr = buffer;
 	unsigned short * src = (unsigned short *)pointers;
 
-	unsigned long i;
+	uint32_t i;
 	unsigned short index;
-	unsigned long type;
+	uint32_t type;
 	unsigned int cb_idx;
 	unsigned int scatter_count;
 	unsigned int code;

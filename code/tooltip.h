@@ -13,6 +13,8 @@
 
 #pragma once
 
+
+#include <cstdint>
 #include "index.h"
 #include "point.h"
 #include "rect.h"
@@ -114,7 +116,7 @@ class ToolTipManager
 
 		// When the last tooltip went away, while WasShown is set.
 		bool WasShown;
-		unsigned long HiddenAt;
+		uint32_t HiddenAt;
 
 		// The tooltip a click or its lifetime took down; it stays hidden until the mouse leaves its region.
 		bool IsDismissed;
@@ -122,7 +124,7 @@ class ToolTipManager
 
 		// The time Service next acts, while TimerRunning is set.
 		bool TimerRunning;
-		unsigned long TimerDue;
+		uint32_t TimerDue;
 
 		/*
 		 * If this manager is allowed to display tooltips, then this flag will be true. A

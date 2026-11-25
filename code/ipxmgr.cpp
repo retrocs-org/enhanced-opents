@@ -64,6 +64,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "ipxmgr.h"
 
 #include "_surface.h"
@@ -244,7 +246,7 @@ void IPXManagerClass::Configure_Direct()
 /// <param name="local_id">The ID the tunnel server knows us by.</param>
 /// <param name="tunnel_ip">Address of the tunnel server, in network order.</param>
 /// <param name="tunnel_port">Port of the tunnel server, in network order.</param>
-void IPXManagerClass::Configure_Tunnel(unsigned short local_id, unsigned long tunnel_ip, unsigned short tunnel_port)
+void IPXManagerClass::Configure_Tunnel(unsigned short local_id, uint32_t tunnel_ip, unsigned short tunnel_port)
 {
 	Shutdown();
 

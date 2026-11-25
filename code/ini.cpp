@@ -68,6 +68,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "ini.h"
 
 #include "b64pipe.h"
@@ -1030,8 +1032,8 @@ static bool Parse_ClassID(char const * text, ClassID & clsid)
 // The buffer holds the 38 characters of the braced form and its terminator.
 static void Format_ClassID(ClassID const & clsid, char * text)
 {
-	sprintf(text, "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-		(unsigned long)clsid.Data1, (unsigned int)clsid.Data2, (unsigned int)clsid.Data3,
+	sprintf(text, "{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
+		(uint32_t)clsid.Data1, (unsigned int)clsid.Data2, (unsigned int)clsid.Data3,
 		clsid.Data4[0], clsid.Data4[1], clsid.Data4[2], clsid.Data4[3],
 		clsid.Data4[4], clsid.Data4[5], clsid.Data4[6], clsid.Data4[7]);
 }

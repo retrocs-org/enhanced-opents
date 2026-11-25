@@ -164,10 +164,16 @@
 #include <cfloat>
 #include <chrono>
 #include <lzo/lzoconf.h>
-#include <shellapi.h>
 #include <string>
 #include <thread>
 #include <vector>
+
+#if defined(_WIN32)
+#include <shellapi.h>
+#else
+#include "posixpaths.h"
+#include <sys/file.h>
+#endif
 
 extern	HINSTANCE LanguageResources;
 
@@ -309,6 +315,7 @@ static void RegisterClasses(void)
 /// argument the way a DOS program received it.</param>
 /// <param name="argv">Receives the argument array, which lasts as long as the process.</param>
 /// <returns>The number of arguments, which is never less than one.</returns>
+#if defined(_WIN32)
 static int Build_Arguments(char const * path_to_exe, char ** & argv)
 {
 	static std::vector<std::string> arguments;
@@ -342,6 +349,96 @@ static int Build_Arguments(char const * path_to_exe, char ** & argv)
 	argv = pointers.data();
 	return((int)pointers.size());
 }
+#else
+
+/*
+ * The arguments main() received, with the executable left out.
+ */
+static std::vector<std::string> PosixArguments;
+
+
+static bool Has_Data_Marker(std::string const & directory)
+{
+	if (directory.empty()) {
+		return(false);
+	}
+	WIN32_FIND_DATA block;
+	HANDLE const handle = FindFirstFile((directory + "TIBSUN.MIX").c_str(), &block);
+	if (handle == INVALID_HANDLE_VALUE) {
+		return(false);
+	}
+	FindClose(handle);
+	return(true);
+}
+
+
+static bool Has_Option(char const * prefix)
+{
+	for (std::string const & argument : PosixArguments) {
+		if (strncasecmp(argument.c_str(), prefix, strlen(prefix)) == 0) {
+			return(true);
+		}
+	}
+	return(false);
+}
+
+
+/// <summary>
+/// Records the arguments of main() and supplies the directories a macOS or Linux player does
+/// not name. Without -DATADIR the game data is looked for beside OpenTS.app, then beside the
+/// executable, then in a TiberianSun folder in the user directory. Without -USERDIR the
+/// player's own files go to ~/Library/Application Support/OpenTS (or ~/.local/share/OpenTS),
+/// since the folder of an application bundle is no place to write.
+/// </summary>
+static void Set_Posix_Arguments(int argc, char ** argv)
+{
+	PosixArguments.clear();
+	for (int index = 1; index < argc; index++) {
+		// Finder adds a process serial number to an application it starts.
+		if (strncmp(argv[index], "-psn_", 5) == 0) continue;
+		PosixArguments.push_back(argv[index]);
+	}
+
+	std::string const user = Posix_User_Directory();
+
+	if (!Has_Option("-DATADIR=")) {
+		std::string const candidates[] = {
+			Posix_Bundle_Parent_Directory(),
+			Posix_Executable_Directory(),
+			user.empty() ? std::string() : user + "TiberianSun/",
+		};
+		for (std::string const & candidate : candidates) {
+			if (Has_Data_Marker(candidate)) {
+				PosixArguments.push_back("-DATADIR=" + candidate);
+				break;
+			}
+		}
+	}
+
+	if (!Has_Option("-USERDIR=") && !user.empty()) {
+		PosixArguments.push_back("-USERDIR=" + user);
+	}
+}
+
+
+static int Build_Arguments(char const * path_to_exe, char ** & argv)
+{
+	static std::vector<std::string> arguments;
+	static std::vector<char *> pointers;
+
+	arguments.clear();
+	pointers.clear();
+	arguments.push_back(path_to_exe);
+	arguments.insert(arguments.end(), PosixArguments.begin(), PosixArguments.end());
+
+	for (std::string & argument : arguments) {
+		pointers.push_back(argument.data());
+	}
+
+	argv = pointers.data();
+	return((int)pointers.size());
+}
+#endif
 
 
 /// <summary>
@@ -349,6 +446,7 @@ static int Build_Arguments(char const * path_to_exe, char ** & argv)
 /// When another copy already holds them, its window is brought to the front instead.
 /// </summary>
 /// <returns>bool; Were the mutexes claimed? False means another copy is running.</returns>
+#if defined(_WIN32)
 static bool Claim_Single_Instance(void)
 {
 	/*
@@ -423,6 +521,26 @@ static bool Claim_Single_Instance(void)
 
 	return(true);
 }
+#else
+/// <summary>
+/// Holds a lock on a file in the user directory for the life of the process, which is how
+/// a second copy finds the first.
+/// </summary>
+static bool Claim_Single_Instance(void)
+{
+	std::string const path = User_File_Write_Name("opents.lock");
+	int const descriptor = open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0644);
+	if (descriptor < 0) {
+		return(true);
+	}
+	if (flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
+		close(descriptor);
+		DebugString("TibSun is already running...Bail!\n");
+		return(false);
+	}
+	return(true);
+}
+#endif
 
 
 /***********************************************************************************************
@@ -442,7 +560,20 @@ static bool Claim_Single_Instance(void)
  * HISTORY:                                                                                    *
  *   03/20/1995 JLB : Created.                                                                 *
  *=============================================================================================*/
+#if !defined(_WIN32)
+static int Game_Main(HINSTANCE instance, int posix_argc, char ** posix_argv);
+
+
+int main(int argc, char ** argv)
+{
+	return(Game_Main(NULL, argc, argv));
+}
+
+
+static int Game_Main(HINSTANCE instance, int posix_argc, char ** posix_argv)
+#else
 int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
+#endif
 {
 	int		argc;       //Command line argument count
 	char **	argv;       //Pointers to command line arguments
@@ -454,7 +585,19 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 
 	ProgramInstance = instance;
 
+#if defined(_WIN32)
 	Debug_Init();
+#else
+	Set_Posix_Arguments(posix_argc, posix_argv);
+	{
+		std::vector<char const *> debug_argv;
+		debug_argv.push_back(posix_argc > 0 ? posix_argv[0] : "OpenTS");
+		for (std::string const & argument : PosixArguments) {
+			debug_argv.push_back(argument.c_str());
+		}
+		Debug_Init((int)debug_argv.size(), debug_argv.data());
+	}
+#endif
 
 	// Handed over now because the exception path may not ask the logger for anything: the
 	// thread that crashed may be the one holding the logger's lock.
@@ -527,11 +670,16 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 		DeploymentConfig.Read_File(Data_Directory().c_str());
 		Init_Search_Folders(DeploymentConfig.SearchPaths.c_str());
 
+#if defined(_WIN32)
 		std::string uidirectory = path;
 		if (!uidirectory.empty() && uidirectory.back() != '\\' && uidirectory.back() != '/') {
 			uidirectory += '\\';
 		}
 		uidirectory += "ui\\";
+#else
+		// A macOS bundle keeps the UI files in Contents/Resources rather than beside the executable.
+		std::string const uidirectory = Posix_UI_Directory();
+#endif
 		CDFileClass::Add_Search_Drive(uidirectory.c_str());
 
 		CDFileClass *cfile = new CDFileClass(DeploymentConfig.SettingsFile.c_str());

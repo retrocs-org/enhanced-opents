@@ -10,6 +10,8 @@
 
 #include "always.h"
 
+#include <cstdint>
+
 #include "launcherapply.h"
 
 #include "addon.h"
@@ -191,7 +193,7 @@ void Add_Human_Players(Launch::Game const & game, Launch::Machine const & machin
 				if (peer.Player != index) {
 					continue;
 				}
-				unsigned long ip = network.Tunnel ? 0 : inet_addr(peer.Address.c_str());
+				uint32_t ip = network.Tunnel ? 0 : inet_addr(peer.Address.c_str());
 				node->Address.Set_Address(ip, htons((unsigned short)peer.Port));
 			}
 		}

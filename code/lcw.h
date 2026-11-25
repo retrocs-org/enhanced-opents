@@ -33,7 +33,7 @@
 
 #include <cstdint>
 
-uint32_t LCW_Uncomp(void const * source, void * dest, unsigned long length=0);
+uint32_t LCW_Uncomp(void const * source, void * dest, uint32_t length=0);
 
 int LCW_Comp(void const * source, void * dest, int length);
 

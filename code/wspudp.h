@@ -31,6 +31,8 @@
 
 #pragma once
 
+
+#include <cstdint>
 #include "wsproto.h"
 
 
@@ -66,7 +68,7 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 		 * naming the sender and the recipient by their tunnel ID; a player is addressed by
 		 * that ID in place of a real endpoint. All arguments are in network order.
 		 */
-		void Configure_Tunnel(unsigned short local_id, unsigned long tunnel_ip, unsigned short tunnel_port);
+		void Configure_Tunnel(unsigned short local_id, uint32_t tunnel_ip, unsigned short tunnel_port);
 
 		virtual ProtocolEnum Get_Protocol (void) override {
 			return(PROTOCOL_UDP);
@@ -113,6 +115,6 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 
 		// A tunnel is in use when TunnelPort is non-zero.
 		unsigned short TunnelID;
-		unsigned long TunnelIP;
+		uint32_t TunnelIP;
 		unsigned short TunnelPort;
 };

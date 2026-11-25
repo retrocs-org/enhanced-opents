@@ -1,0 +1,52 @@
+name: macOS build
+
+# Builds OpenTS.app for Apple silicon and Intel Macs and uploads each as a zip.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "code/**"
+      - "thirdparty/**"
+      - "tools/macos/**"
+      - "tools/rcstrings.py"
+      - "CMakeLists.txt"
+      - ".github/workflows/macos.yml"
+  pull_request:
+    paths:
+      - "code/platform/posix/**"
+      - "tools/macos/**"
+      - ".github/workflows/macos.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    steps:
+      - name: Check out OpenTS
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Ninja
+        run: brew install ninja
+
+      - name: Build
+        run: tools/macos/build.sh Release --zip
+
+      - name: Upload the app
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenTS-macOS-${{ matrix.arch }}
+          path: build-macos/OpenTS-macOS-${{ matrix.arch }}.zip
+          retention-days: 30

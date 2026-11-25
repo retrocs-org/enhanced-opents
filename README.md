@@ -118,6 +118,10 @@ OpenTS builds for 32-bit and 64-bit Windows with Visual Studio 2022 and CMake.
 [Building OpenTS](docs/BUILDING.md) documents the exact requirements,
 commands, and outputs.
 
+A native macOS build (Apple silicon and Intel, rendering through Metal) is
+made with the Xcode command line tools and CMake; see
+[Building OpenTS for macOS](docs/BUILDING-macOS.md).
+
 ## Contributing
 
 Bug reports, proposals, documentation improvements, and focused pull requests

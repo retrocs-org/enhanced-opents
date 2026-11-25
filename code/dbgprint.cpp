@@ -1484,7 +1484,7 @@ void __cdecl DebugStringNoPrefix(char const * fmt, ...)
 /// thread.
 /// </summary>
 /// <param name="error">A code as returned by GetLastError.</param>
-char const * Last_Error_Text(unsigned long error)
+char const * Last_Error_Text(uint32_t error)
 {
 	static thread_local char message_buffer[256];
 

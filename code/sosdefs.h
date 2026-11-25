@@ -1,3 +1,4 @@
+#include <cstdint>
 /*******************************************************************************
  *                                O P E N  T S
  *******************************************************************************
@@ -50,9 +51,9 @@ typedef  unsigned int   UINT;
 typedef  unsigned char  BYTE;
 typedef  unsigned       WORD;
 #ifndef  LONG
-typedef  signed long    LONG;
+typedef  int32_t    LONG;
 #endif
-typedef  unsigned long  DWORD;
+typedef  uint32_t  DWORD;
 
 typedef  BYTE  *        PBYTE;
 typedef  char near *    PSTR;

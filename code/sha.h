@@ -32,6 +32,8 @@
 #pragma once
 
 
+
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -68,7 +70,7 @@ class SHAEngine
 	private:
 
 		typedef union {
-			unsigned long Long[5];
+			uint32_t Long[5];
 			unsigned char Char[20];
 		} SHADigest;
 

@@ -24,6 +24,7 @@
 // the opt-out, Windows 11 drops it while the window is minimized and each sleep lasts about 16 ms.
 // SetProcessInformation is looked up at runtime because Windows 7 lacks it and would refuse to
 // load the game; Windows 7 also lacks the throttling it opts out of.
+#if defined(_WIN32)
 static struct MillisecondResolutionClass
 {
 	MillisecondResolutionClass(void)
@@ -42,6 +43,7 @@ static struct MillisecondResolutionClass
 	}
 	~MillisecondResolutionClass(void) { timeEndPeriod(1); }
 } MillisecondResolution;
+#endif
 
 
 /// <summary>
