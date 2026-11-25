@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Entitlements for a Developer ID build of OpenTS.app under the hardened runtime.
+
+	The game needs no exception from the hardened runtime: it generates no code at run time,
+	loads only system frameworks, and is not sandboxed, so network play and reading the game
+	data from any folder work without entitlements. The file exists so a signature never picks
+	up stray entitlements and so any future exception is added in one reviewed place.
+-->
+<plist version="1.0">
+<dict>
+</dict>
+</plist>

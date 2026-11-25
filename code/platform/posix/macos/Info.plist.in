@@ -32,6 +32,8 @@
 	<true/>
 	<key>GCSupportsGameMode</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>OpenTS looks for and talks to other players on your local network for LAN games.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>OpenTS contributors. GPL-3.0-or-later. Command &amp; Conquer is a trademark of Electronic Arts.</string>
 </dict>
