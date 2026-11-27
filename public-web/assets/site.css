@@ -506,35 +506,44 @@ tr+tr td,tbody tr:first-child td {
     color: var(--lime);
 }
 
-.hub-links {
-    display: grid;
-    grid-template-columns: minmax(0,2fr) minmax(0,1fr);
-    gap: 16px;
+.uplink-parent,.uplink-submenu a[aria-current="page"],.uplink-sections a[aria-current="page"] {
+    color: var(--lime);
+    font-weight: 700;
 }
 
-.hub-mode,.hub-lobby {
-    display: flex;
-    align-items: end;
-    min-height: 230px;
-    padding: clamp(20px,4vw,42px);
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    background: var(--panel);
+.uplink-submenu {
+    flex-wrap: wrap;
+    gap: 0 clamp(12px,3vw,30px);
+    border-bottom: 1px solid var(--line);
 }
 
-.hub-mode {
-    min-height: 310px;
-    background: linear-gradient(90deg,#0c1310f5 8%,#0c1310a6 65%,#0c13105c),url('basin.webp') center / cover;
+.uplink-submenu a {
+    display: block;
+    padding: 11px 0 9px;
+    border-bottom: 2px solid transparent;
 }
 
-.hub-mode:hover,.hub-lobby:hover {
+.uplink-submenu a[aria-current="page"] {
     border-color: var(--lime);
 }
 
-.hub-mode p,.hub-lobby p {
-    max-width: 44ch;
-    color: var(--muted);
+.uplink-sections {
+    flex-wrap: wrap;
+    gap: 4px clamp(12px,3vw,26px);
+    padding: 8px 0 8px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: .83rem;
 }
+
+.uplink-sections a {
+    padding: 3px 0;
+}
+
+.uplink-sections a[aria-current="page"] {
+    text-decoration: underline;
+    text-underline-offset: .27em;
+}
+
 
 .season-stats {
     display: grid;
@@ -561,8 +570,6 @@ tr+tr td,tbody tr:first-child td {
     font-weight: 750;
 }
 
-@media(max-width:760px) {
-    .hub-links {
-        grid-template-columns: 1fr;
-    }
+.uplink-header + main > .hero + .callout {
+    margin-top: 24px;
 }

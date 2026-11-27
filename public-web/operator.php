@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require __DIR__ . '/navigation.php';
 require __DIR__ . '/campaign.php';
 require __DIR__ . '/access.php';
 
@@ -85,8 +86,10 @@ try {
 ?>
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenTS Enhanced operator queue</title><link rel="stylesheet" href="assets/site.css"></head>
-<body><main class="shell section">
+<title>OpenTS Enhanced operator queue</title><link rel="stylesheet" href="assets/site.css?v=<?= filemtime(__DIR__ . '/assets/site.css') ?>"></head>
+<body>
+<?php commandUplinkNav('operator.php'); ?>
+<main class="shell section" id="main">
 <p><a href="world-domination.php">← World Domination Tour</a></p>
 <h1 class="utility-title">Operator queue</h1>
 <p>Signed in as <?= h($operator) ?></p>

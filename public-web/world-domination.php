@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require __DIR__ . '/navigation.php';
 require __DIR__ . '/campaign.php';
 
 header('Cache-Control: no-store');
@@ -48,13 +49,7 @@ $battleLabels = [
 <link rel="stylesheet" href="assets/site.css?v=<?= filemtime(__DIR__ . '/assets/site.css') ?>">
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
-<header class="top shell">
-<a class="brand" href="./"><span class="mark" aria-hidden="true"></span>Enhanced OpenTS</a>
-<nav aria-label="Main navigation">
-<a href="./">Command Uplink</a><a href="#frontier">Territory map</a><a href="#history">Battle history</a><a href="lobby.php">Private lobby</a>
-</nav>
-</header>
+<?php commandUplinkNav('world-domination.php'); ?>
 <main class="shell" id="main">
 <section class="hero">
 <p class="eyebrow">World Domination Tour</p>

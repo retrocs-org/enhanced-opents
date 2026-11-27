@@ -1,6 +1,9 @@
 # Enhanced OpenTS public website
 
-Command Uplink links to the World Domination Tour and private match lobby.
+The Command Uplink submenu links to the World Domination Tour, Public Server
+Browser and private match lobby. The server browser has Public Server
+Listing and Leaderboards views. Both show an unavailable state until a
+public directory and match results are connected.
 The Tour page shows the current Frontier season map, territory owners,
 active battles, confirmed wins and recent results. Select a territory on
 the map to see its scenario and battle status. The page reads the campaign
