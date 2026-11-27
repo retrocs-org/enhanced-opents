@@ -1,0 +1,21 @@
+<?php
+declare(strict_types=1);
+
+if (!defined('OPENTS_WEB_CONFIG')) {
+    http_response_code(404);
+    exit;
+}
+
+// Copy to config.inc.php on the web server. The refresh script preserves it.
+// Environment variables with the same names take precedence.
+return [
+    // MariaDB connection and application account.
+    'OPENTS_WEB_DSN' => 'mysql:host=172.16.1.121;port=3306;dbname=enhanced-opents;charset=utf8mb4',
+    'OPENTS_WEB_DB_USER' => 'enhanced-opents',
+    'OPENTS_WEB_DB_PASSWORD' => '',
+
+    // Match host and operator authentication. Use two distinct random tokens.
+    'OPENTS_WDT_SERVER_TOKEN' => '',
+    'OPENTS_WDT_OPERATOR_NAME' => '',
+    'OPENTS_WDT_OPERATOR_TOKEN' => '',
+];

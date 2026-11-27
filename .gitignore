@@ -63,3 +63,6 @@ manual/data/.manual-generate-*/
 
 # Out-of-tree builds of the POSIX port
 /build-*/
+
+# Local website credentials
+/public-web/config.inc.php

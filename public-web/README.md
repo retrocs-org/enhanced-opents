@@ -8,25 +8,18 @@ battles. It also links to OpenTS releases and exposes the campaign API.
 1. Create the MariaDB database and an application account with SELECT,
    INSERT and UPDATE on that database. Grant CREATE while initializing the
    schema.
-2. Point the PHP virtual host at this directory. Use PHP 8.1 or newer with
-   PDO MySQL. Supply these environment variables to the PHP worker.
-
-       OPENTS_WEB_DSN=mysql:host=127.0.0.1;dbname=enhanced-opents;charset=utf8mb4
-       OPENTS_WEB_DB_USER=enhanced-opents
-       OPENTS_WEB_DB_PASSWORD=<database password>
-       OPENTS_WDT_SERVER_TOKEN=<random server credential of at least 32 characters>
-       OPENTS_WDT_OPERATOR_NAME=<operator username>
-       OPENTS_WDT_OPERATOR_TOKEN=<different random credential of at least 32 characters>
-
-3. Supply the same `OPENTS_WEB_DSN`, `OPENTS_WEB_DB_USER` and
-   `OPENTS_WEB_DB_PASSWORD` to PHP CLI. Run `php migrate.php` from the
-   deployed document root as the web service user. The command creates
-   missing tables and inserts missing territories. Revoke CREATE after it
-   succeeds. For a pilot database, follow the upgrade steps below.
+2. Point the virtual host at this directory. Use PHP 8.1 or newer with
+   PDO MySQL. Copy `config.inc.php.example` to `config.inc.php` and fill in
+   the database password, operator name and two distinct random tokens of
+   at least 32 characters. Give the PHP worker read access to the file.
+   Environment variables with the same names override the file settings.
+3. Run `php migrate.php` from the deployed document root as the web
+   service user. The command creates missing tables and inserts missing
+   territories. Revoke CREATE after it succeeds. For a pilot database,
+   follow the upgrade steps below.
 4. Open `index.php` for the site or `api.php?route=theater` for JSON.
    For local development, run `php -S 127.0.0.1:8080 -t public-web`
-   from the project root. Serve the live site over HTTPS and keep credentials
-   in the PHP worker environment.
+   from the project root. Serve the live site over HTTPS.
 
 ## Battle lifecycle
 

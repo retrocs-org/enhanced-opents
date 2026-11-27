@@ -35,9 +35,9 @@ function input(): array
 
 function requireServer(): void
 {
-    $expected = getenv('OPENTS_WDT_SERVER_TOKEN');
+    $expected = webSetting('OPENTS_WDT_SERVER_TOKEN');
     $provided = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if ($expected === false || strlen($expected) < 32) {
+    if (strlen($expected) < 32) {
         respond(503, ['error' => 'Server authentication is unconfigured.']);
     }
     if (!hash_equals('Bearer ' . $expected, $provided)) {

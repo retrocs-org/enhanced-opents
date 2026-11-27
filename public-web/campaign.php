@@ -1,13 +1,15 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/settings.php';
+
 function database(): PDO
 {
-    $dsn = getenv('OPENTS_WEB_DSN');
+    $dsn = webSetting('OPENTS_WEB_DSN');
     if (!$dsn || !str_starts_with($dsn, 'mysql:')) {
         throw new RuntimeException('OPENTS_WEB_DSN must specify a MariaDB database.');
     }
-    return new PDO($dsn, getenv('OPENTS_WEB_DB_USER') ?: '', getenv('OPENTS_WEB_DB_PASSWORD') ?: '', [
+    return new PDO($dsn, webSetting('OPENTS_WEB_DB_USER') ?: '', webSetting('OPENTS_WEB_DB_PASSWORD') ?: '', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
