@@ -102,16 +102,8 @@ nav,.footer div {
 }
 
 .hero {
-    position: relative;
-    isolation: isolate;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    min-height: 540px;
-    overflow: hidden;
     border-bottom: 1px solid var(--line);
-    padding: 60px 0;
-    gap: 34px;
+    padding: clamp(32px,6vw,76px) 0;
 }
 
 .eyebrow,.card-foot,.owner {
@@ -147,8 +139,8 @@ h3 {
 .intro {
     font-size: clamp(1rem,2vw,1.26rem);
     color: var(--muted);
-    max-width: 35ch;
-    margin: 21px 0 28px;
+    max-width: 58ch;
+    margin: 18px 0 0;
 }
 
 .button {
@@ -168,82 +160,98 @@ h3 {
     background: #e3ffb4;
 }
 
-.board {
+.season-map {
     position: relative;
-    aspect-ratio: 1.37;
-    border: 1px solid #51704a;
-    border-radius: 12px;
-    overflow: hidden;
-    background: radial-gradient(ellipse at 57% 52%,#405438,#192c20 68%,#14201a);
-    box-shadow: 0 22px 65px #0005;
+    isolation: isolate;
+    min-height: 300px;
+    aspect-ratio: 2.5;
+    margin-bottom: 20px;
+    border: 1px solid #4c6259;
+    border-radius: 8px;
+    background:
+        repeating-linear-gradient(0deg,transparent 0 31px,#9db8ad17 31px 32px),
+        repeating-linear-gradient(90deg,transparent 0 31px,#9db8ad17 31px 32px),
+        radial-gradient(ellipse at 48% 44%,#24453f,#101d20 85%);
 }
 
-.grid {
+.map-region,.map-land {
     position: absolute;
     inset: 0;
-    opacity: .55;
-    background: repeating-linear-gradient(0deg,transparent 0 32px,#9bbb7d45 33px 34px),repeating-linear-gradient(90deg,transparent 0 32px,#9bbb7d45 33px 34px);
+    pointer-events: none;
 }
 
-.orbit {
+.map-region {
+    --surface: #32443d;
+}
+
+.map-region.gdi {
+    --surface: #614d2d;
+}
+
+.map-region.nod {
+    --surface: #623934;
+}
+
+.map-region.river-crossing {
+    --border: polygon(4% 42%,11% 29%,9% 18%,22% 12%,33% 25%,36% 40%,30% 55%,35% 67%,26% 84%,13% 77%,16% 66%,7% 60%);
+    --marker-x: 21%;
+    --marker-y: 49%;
+}
+
+.map-region.central-basin {
+    --border: polygon(23% 11%,37% 7%,45% 16%,58% 11%,69% 22%,64% 40%,70% 49%,60% 61%,62% 73%,51% 86%,39% 77%,27% 84%,36% 67%,31% 55%,37% 40%,34% 25%);
+    --marker-x: 49%;
+    --marker-y: 46%;
+}
+
+.map-region.ridge-line {
+    --border: polygon(70% 22%,78% 16%,90% 24%,96% 41%,90% 54%,94% 66%,85% 83%,76% 79%,70% 93%,52% 86%,63% 73%,61% 61%,71% 49%,65% 40%);
+    --marker-x: 79%;
+    --marker-y: 59%;
+}
+
+.map-land {
+    clip-path: var(--border);
+    background:
+        repeating-radial-gradient(ellipse at 62% 33%,transparent 0 13px,#e6f7e321 14px 15px,transparent 16px 26px),
+        linear-gradient(135deg,#ffffff18,#00000042),
+        var(--surface);
+}
+
+.map-region:focus-within .map-land,.map-region:hover .map-land {
+    filter: brightness(1.24);
+}
+
+.map-marker {
     position: absolute;
-    border: 1px solid #c6f47770;
-    border-radius: 46%;
-    width: 75%;
-    height: 52%;
-    left: 13%;
-    top: 24%;
-    transform: rotate(-29deg);
+    top: var(--marker-y);
+    left: var(--marker-x);
+    transform: translate(-50%,-50%);
+    display: grid;
+    gap: 3px;
+    width: max-content;
+    max-width: 29%;
+    padding: .45rem .65rem;
+    border: 1px solid var(--faction);
+    border-radius: 5px;
+    background: #111a17;
+    color: var(--paper);
+    font-size: clamp(.76rem,1.7vw,1rem);
+    line-height: 1.25;
+    text-align: center;
+    pointer-events: auto;
 }
 
-.orbit-two {
-    transform: rotate(29deg);
-    border-color: #e2f9bc40;
+.map-owner,.map-battle {
+    font-size: .78em;
 }
 
-.beam {
-    position: absolute;
-    inset: 0;
-    background: repeating-radial-gradient(ellipse at 55% 56%,transparent 0 17px,#d7f5ad16 18px 19px,transparent 21px 29px);
-}
-
-.pin {
-    position: absolute;
+.map-owner {
     color: var(--faction);
-    padding: 6px 8px 6px 23px;
-    border: 1px solid #657464;
-    background: #122017;
-    border-radius: 4px;
-    font-size: .72rem;
-    line-height: 1.2;
-    white-space: nowrap;
 }
 
-.pin:before {
-    content: "";
-    position: absolute;
-    left: 8px;
-    top: 9px;
-    width: 7px;
-    height: 7px;
-    background: currentColor;
-    transform: rotate(45deg);
-    box-shadow: 0 0 9px currentColor;
-}
-
-.pin.river-crossing {
-    left: 13%;
-    top: 55%;
-}
-
-.pin.central-basin {
-    left: 43%;
-    top: 32%;
-}
-
-.pin.ridge-line {
-    right: 12%;
-    top: 69%;
+.map-battle {
+    color: var(--paper);
 }
 
 .section {
@@ -430,14 +438,14 @@ tr+tr td,tbody tr:first-child td {
         padding: 12px 0;
         gap: 10px;
     }
-    .hero {
-        min-height: 0;
-        grid-template-columns: 1fr;
-        gap: 25px;
-        padding: 45px 0 25px;
+    .season-map {
+        min-height: 230px;
     }
-    .board {
-        aspect-ratio: 2;
+    .map-marker {
+        padding-inline: .3rem;
+    }
+    .score {
+        flex-wrap: wrap;
     }
     .territories {
         grid-template-columns: 1fr;

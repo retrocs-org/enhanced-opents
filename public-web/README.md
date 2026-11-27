@@ -1,7 +1,9 @@
 # Enhanced OpenTS public website
 
-The site shows Frontier territory ownership, active reservations and recent
-battles. It also links to OpenTS releases and exposes the campaign API.
+The homepage shows a map of the current Frontier season with territory owners,
+active battle status and faction totals. Select a territory on the map to see
+its scenario and battle status. The page loads the same campaign snapshot as
+the API on each request.
 
 ## Setup
 

@@ -16,7 +16,9 @@ function h(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
-$counts = array_count_values(array_column($campaign['territories'] ?? [], 'owner'));
+$territories = $campaign['territories'] ?? [];
+$counts = array_count_values(array_column($territories, 'owner'));
+$mappedTerritories = ['river-crossing', 'central-basin', 'ridge-line'];
 $log = $campaign['history'] ?? [];
 $battleLabels = [
     'reserved' => 'Reserved',
@@ -33,49 +35,56 @@ $battleLabels = [
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Follow the Frontier campaign in OpenTS Enhanced World Domination.">
-<title>OpenTS Enhanced — Frontier</title>
+<meta name="description" content="Follow territory control and active battles in the Enhanced OpenTS World Domination Tour.">
+<title>Enhanced OpenTS — Frontier</title>
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top shell">
-<a class="brand" href="./"><span class="mark" aria-hidden="true"></span>OpenTS Enhanced</a>
+<a class="brand" href="./"><span class="mark" aria-hidden="true"></span>Enhanced OpenTS</a>
 <nav aria-label="Main navigation">
-<a href="#frontier">World Domination</a><a href="#history">Match history</a><a href="#play">Get OpenTS Enhanced</a><a href="lobby.php">Private lobby</a>
+<a href="#frontier">World Domination</a><a href="#history">Match history</a><a href="#play">Get Enhanced OpenTS</a><a href="lobby.php">Private lobby</a>
 </nav>
 </header>
 <main class="shell" id="main">
 <section class="hero">
-<div>
-<p class="eyebrow">World Domination</p>
-<h1>Frontier</h1>
-<p class="intro">Three territories. Two factions. Every verified victory can change who controls the map.</p>
-<a class="button" href="#frontier">View the theater <span aria-hidden="true">↓</span></a>
-</div>
-<div class="board"<?= $campaign ? ' role="group" aria-label="Frontier territory shortcuts"' : ' aria-hidden="true"' ?>>
-<div class="grid"></div><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="beam"></div>
-<?php foreach ($campaign['territories'] ?? [] as $territory): ?>
-<a class="pin <?= h($territory['id']) ?> <?= h(strtolower($territory['owner'])) ?>" href="#<?= h($territory['id']) ?>">
-<span><?= h($territory['name']) ?></span></a>
-<?php endforeach; ?>
-</div>
+<p class="eyebrow">World Domination Tour</p>
+<h1><?= h($campaign['name'] ?? 'Frontier') ?></h1>
+<p class="intro">Follow the current season as GDI and Nod fight for control of Frontier.</p>
 </section>
 <section class="section" id="frontier">
-<div class="section-head"><div><p class="eyebrow">Campaign</p><h2>Territory control</h2></div>
-<?php if ($campaign): ?><div class="score" aria-label="Territory totals">
+<div class="section-head"><div><p class="eyebrow">Current season</p><h2>Territory control</h2></div>
+<?php if ($territories): ?><div class="score" aria-label="Territories by owner">
 <span class="gdi">GDI <strong><?= $counts['GDI'] ?? 0 ?></strong></span>
 <span class="nod">Nod <strong><?= $counts['Nod'] ?? 0 ?></strong></span>
+<span class="neutral">Neutral <strong><?= $counts['Neutral'] ?? 0 ?></strong></span>
 </div><?php endif; ?></div>
-<?php if (!$campaign): ?>
-<p class="empty">Territory data is currently unavailable.</p>
-<?php else: ?><div class="territories">
-<?php foreach ($campaign['territories'] as $territory): ?>
+<?php if (!$territories): ?>
+<p class="empty"><?= $campaign ? 'No territories are configured for this season.' : 'Territory data is currently unavailable.' ?></p>
+<?php else: ?>
+<div class="season-map" role="group" aria-label="Frontier season map">
+<?php foreach ($territories as $territory): ?>
+<?php if (!in_array($territory['id'], $mappedTerritories, true)) { continue; } ?>
+<div class="map-region <?= h($territory['id']) ?> <?= h(strtolower($territory['owner'])) ?>">
+<div class="map-land" aria-hidden="true"></div>
+<a class="map-marker" href="#<?= h($territory['id']) ?>">
+<strong><?= h($territory['name']) ?></strong>
+<span class="map-owner"><?= h($territory['owner']) ?></span>
+<?php if ($territory['battle_status'] !== null): ?>
+<span class="map-battle"><?= h($battleLabels[$territory['battle_status']] ?? $territory['battle_status']) ?></span>
+<?php endif; ?>
+</a>
+</div>
+<?php endforeach; ?>
+</div>
+<div class="territories">
+<?php foreach ($territories as $territory): ?>
 <article id="<?= h($territory['id']) ?>" class="territory <?= h(strtolower($territory['owner'])) ?>">
 <div class="territory-art <?= h($territory['id']) ?>" aria-hidden="true"></div>
 <div class="card-body"><p class="owner"><span></span><?= h($territory['owner']) ?></p>
 <h3><?= h($territory['name']) ?></h3>
-<div class="card-foot"><span><?= h($territory['map']) ?></span><span><?= h($battleLabels[$territory['battle_status']] ?? 'Open') ?></span></div></div>
+<div class="card-foot"><span><?= h($territory['map']) ?></span><span><?= h($battleLabels[$territory['battle_status'] ?? ''] ?? 'Open') ?></span></div></div>
 </article>
 <?php endforeach; ?>
 </div><?php endif; ?>
@@ -93,10 +102,10 @@ $battleLabels = [
 </tbody></table></div><?php endif; ?>
 </section>
 <section class="callout" id="play">
-<div><p class="eyebrow">The game</p><h2>Get OpenTS Enhanced</h2><p>An open-source engine for Tiberian Sun and Firestorm. Original game data is required.</p></div>
+<div><p class="eyebrow">The game</p><h2>Get Enhanced OpenTS</h2><p>An open-source engine for Tiberian Sun and Firestorm. Original game data is required.</p></div>
 <a class="button" href="https://github.com/OpenTS-Developers/OpenTS/releases">View releases <span aria-hidden="true">↗</span></a>
 </section>
 </main>
-<footer class="shell footer"><span>OpenTS Enhanced</span><div><a href="https://github.com/OpenTS-Developers/OpenTS">Source code</a><a href="api.php?route=theater">Campaign API</a><a href="operator.php">Operator queue</a></div></footer>
+<footer class="shell footer"><span>Enhanced OpenTS</span><div><a href="https://github.com/OpenTS-Developers/OpenTS">Source code</a><a href="api.php?route=theater">Campaign API</a><a href="operator.php">Operator queue</a></div></footer>
 </body>
 </html>
