@@ -1,13 +1,49 @@
 <?php
 declare(strict_types=1);
 
+function sitePage(string $title, string $current): void
+{
+    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
+    header('X-Content-Type-Options: nosniff');
+    ?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> · Enhanced OpenTS</title>
+<link rel="stylesheet" href="assets/site.css?v=<?= filemtime(__DIR__ . '/assets/site.css') ?>">
+</head>
+<body>
+<?php commandUplinkNav($current); ?>
+<main class="shell" id="main">
+    <?php
+}
+
+function sitePageEnd(): void
+{
+    ?>
+</main>
+<footer class="shell footer"><span>Enhanced OpenTS</span><a href="https://github.com/retrocs-org/enhanced-opents">Source code</a></footer>
+</body>
+</html>
+    <?php
+}
+
 function commandUplinkNav(string $current, string $view = ''): void
 {
     $pages = [
         'world-domination.php' => 'World Domination Tour',
         'servers.php' => 'Public Server Browser',
-        'lobby.php' => 'Private lobby',
     ];
+    $main = [
+        './' => 'Overview',
+        'features.php' => 'Features',
+        'command-uplink.php' => 'Command Uplink',
+        'downloads.php' => 'Downloads',
+        'sign-in.php' => 'Sign in',
+    ];
+    $showModes = $current === 'command-uplink.php' || isset($pages[$current]);
     $sections = match ($current) {
         'world-domination.php' => ['#frontier' => 'Territory map', '#history' => 'Battle history'],
         'servers.php' => ['servers.php' => 'Public Server Listing', 'servers.php?view=leaderboards' => 'Leaderboards'],
@@ -15,18 +51,22 @@ function commandUplinkNav(string $current, string $view = ''): void
     };
     ?>
 <a class="skip" href="#main">Skip to content</a>
-<header class="shell uplink-header">
+<header class="shell site-header">
 <div class="top">
 <a class="brand" href="./"><span class="mark" aria-hidden="true"></span>Enhanced OpenTS</a>
 <nav aria-label="Main navigation">
-<a class="uplink-parent" href="./"<?= $current === 'index.php' ? ' aria-current="page"' : '' ?>>Command Uplink</a>
+<?php foreach ($main as $url => $label): ?>
+<a href="<?= $url ?>"<?= $current === $url ? ' aria-current="page"' : '' ?><?= $showModes && $url === 'command-uplink.php' ? ' class="uplink-parent"' : '' ?>><?= $label ?></a>
+<?php endforeach; ?>
 </nav>
 </div>
+<?php if ($showModes): ?>
 <nav class="uplink-submenu" aria-label="Command Uplink submenu">
 <?php foreach ($pages as $url => $label): ?>
 <a href="<?= $url ?>"<?= $current === $url ? ' aria-current="page"' : '' ?>><?= $label ?></a>
 <?php endforeach; ?>
 </nav>
+<?php endif; ?>
 <?php if ($sections): ?>
 <nav class="uplink-sections" aria-label="<?= $pages[$current] ?> sections">
 <?php foreach ($sections as $url => $label): ?>

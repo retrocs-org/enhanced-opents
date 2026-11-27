@@ -1,31 +1,16 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/navigation.php';
-
-header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
-header('X-Content-Type-Options: nosniff');
+sitePage('Overview', './');
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Find Enhanced OpenTS multiplayer modes and join private matches.">
-<title>Command Uplink · Enhanced OpenTS</title>
-<link rel="stylesheet" href="assets/site.css?v=<?= filemtime(__DIR__ . '/assets/site.css') ?>">
-</head>
-<body>
-<?php commandUplinkNav('index.php'); ?>
-<main class="shell" id="main">
-<section class="hero">
-<h1>Command Uplink</h1>
-<p class="intro">Track the Frontier campaign, browse public servers, or check in for a private match.</p>
+<section class="hero overview-hero">
+<p class="eyebrow">Command &amp; Conquer · Tiberian Sun</p>
+<h1>Enhanced OpenTS</h1>
+<p class="intro">Play Tiberian Sun and Firestorm on an open-source engine. Choose GDI or Nod, build a base, harvest Tiberium, and fight across campaigns and skirmishes.</p>
+<a class="button" href="downloads.php">Get the game <span aria-hidden="true">→</span></a>
 </section>
-<section class="callout" id="play">
-<div><h2>Get Enhanced OpenTS</h2><p>An open-source engine for Tiberian Sun and Firestorm. Original game data is required.</p></div>
-<a class="button" href="https://github.com/OpenTS-Developers/OpenTS/releases">View releases <span aria-hidden="true">↗</span></a>
+<section class="section overview-grid" aria-label="Explore Enhanced OpenTS">
+<article class="operator-card"><h2>Campaigns and skirmish</h2><p>Play the original missions or set up a custom match against the AI. Enhanced OpenTS uses your original game data.</p><a href="features.php">Explore features and history →</a></article>
+<article class="operator-card"><h2>Multiplayer</h2><p>Follow territory control, active battles and faction scores in the Frontier season of World Domination Tour.</p><a href="command-uplink.php">Open Command Uplink →</a></article>
 </section>
-</main>
-<footer class="shell footer"><span>Enhanced OpenTS</span><div><a href="https://github.com/OpenTS-Developers/OpenTS">Source code</a><a href="api.php?route=theater">Campaign API</a></div></footer>
-</body>
-</html>
+<?php sitePageEnd(); ?>
