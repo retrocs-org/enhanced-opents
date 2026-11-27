@@ -26,7 +26,7 @@ sitePage('Features', 'features.php');
 <li><time datetime="1999">1999</time><div><h3>Tiberian Sun</h3><p>Westwood Studios releases the original Windows game.</p></div></li>
 <li><time datetime="2000">2000</time><div><h3>Firestorm</h3><p>The expansion continues the story with new missions and units.</p></div></li>
 <li><time datetime="2026-08-27">27 Aug 2026</time><div><h3>OpenTS 0.1.0</h3><p>The first public OpenTS release brings the reconstructed engine to 32-bit and 64-bit Windows.</p></div></li>
-<li><time datetime="2026-11-25">25 Nov 2026</time><div><h3>Enhanced OpenTS macOS port</h3><p>Native Apple silicon and Intel support lands in the development branch.</p></div></li>
+<li class="feature-timeline-current"><time datetime="2026-11-25">25 Nov 2026</time><div><h3>Enhanced OpenTS</h3><p>Native Apple silicon and Intel support lands in the development branch.</p></div></li>
 </ol>
 <p><a href="https://github.com/OpenTS-Developers/OpenTS/blob/main/docs/HISTORY.md">Read the OpenTS project history →</a></p>
 </section>

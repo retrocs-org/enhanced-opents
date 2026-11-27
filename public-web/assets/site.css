@@ -608,25 +608,101 @@ tr+tr td,tbody tr:first-child td {
 }
 
 .feature-timeline {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
     list-style: none;
     padding: 0;
+    margin: 28px 0 24px;
 }
 
-.feature-timeline li {
-    display: grid;
-    grid-template-columns: minmax(78px,9rem) 1fr;
-    gap: 12px;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--line);
+.feature-timeline > li {
+    position: relative;
+    padding: 0 18px 0 0;
+}
+
+.feature-timeline > li::before,
+.feature-timeline > li::after {
+    position: absolute;
+    content: "";
+}
+
+.feature-timeline > li::before {
+    top: 31px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--line);
+}
+
+.feature-timeline > li:last-child::before {
+    content: none;
+}
+
+.feature-timeline > li::after {
+    top: 25px;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border: 2px solid var(--lime);
+    border-radius: 50%;
+    background: var(--base);
 }
 
 .feature-timeline time {
+    display: block;
+    line-height: 20px;
+    margin-bottom: 26px;
     color: var(--lime);
 }
 
+.feature-timeline h3 {
+    margin: 0 0 8px;
+}
+
 .feature-timeline p {
-    margin-bottom: 0;
+    margin: 0;
     color: var(--muted);
+}
+
+.feature-timeline > .feature-timeline-current::after {
+    background: var(--lime);
+    box-shadow: 0 0 0 4px #c6f47724;
+}
+
+.feature-timeline-current h3 {
+    color: var(--lime);
+}
+
+@media (max-width: 760px) {
+    .feature-timeline {
+        grid-template-columns: 1fr;
+    }
+
+    .feature-timeline > li {
+        padding: 0 0 24px 30px;
+    }
+
+    .feature-timeline > li:last-child {
+        padding-bottom: 0;
+    }
+
+    .feature-timeline > li::before {
+        top: 9px;
+        bottom: -9px;
+        left: 6px;
+        right: auto;
+        width: 2px;
+        height: auto;
+    }
+
+    .feature-timeline > li::after {
+        top: 3px;
+    }
+
+    .feature-timeline time {
+        margin-bottom: 6px;
+    }
 }
 
 .account-panel {
