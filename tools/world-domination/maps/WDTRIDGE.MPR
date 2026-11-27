@@ -1,0 +1,21 @@
+[Basic]
+Name=Ridge Line
+NewINIFormat=4
+MultiplayerOnly=1
+MaxPlayer=2
+MinPlayer=2
+
+[Map]
+Theater=TEMPERATE
+Size=0,0,64,64
+LocalSize=2,4,60,54
+
+[Waypoints]
+0=51067
+1=77061
+
+[Terrain]
+55054=TIBTRE01
+62069=TIBTRE01
+66059=TIBTRE01
+73074=TIBTRE01

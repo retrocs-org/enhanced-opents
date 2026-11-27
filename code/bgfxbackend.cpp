@@ -12,6 +12,8 @@
 
 #include "bgfxbackend.h"
 
+#include "video.h"
+
 #include "dbgprint.h"
 #include "except.h"
 
@@ -163,7 +165,7 @@ static void Build_Convert_Table(void)
 /// Submits one textured rectangle covering the given destination. False means the
 /// transient vertex memory ran out and nothing was submitted.
 /// </summary>
-static bool Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x, float y, float width, float height, unsigned int samplerflags, bool flipv = false)
+static bool Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x, float y, float width, float height, unsigned int samplerflags, float uleft, float vtop, float uright, float vbottom)
 {
 	bgfx::TransientVertexBuffer buffer;
 
@@ -176,15 +178,12 @@ static bool Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x,
 	BackendVertex * vertex = (BackendVertex *)buffer.data;
 	const unsigned int white = 0xFFFFFFFF;
 
-	const float vtop = flipv ? 1.0f : 0.0f;
-	const float vbottom = flipv ? 0.0f : 1.0f;
-
-	vertex[0] = { x, y, 0.0f, vtop, white };
-	vertex[1] = { x + width, y, 1.0f, vtop, white };
-	vertex[2] = { x + width, y + height, 1.0f, vbottom, white };
-	vertex[3] = { x, y, 0.0f, vtop, white };
-	vertex[4] = { x + width, y + height, 1.0f, vbottom, white };
-	vertex[5] = { x, y + height, 0.0f, vbottom, white };
+	vertex[0] = { x, y, uleft, vtop, white };
+	vertex[1] = { x + width, y, uright, vtop, white };
+	vertex[2] = { x + width, y + height, uright, vbottom, white };
+	vertex[3] = { x, y, uleft, vtop, white };
+	vertex[4] = { x + width, y + height, uright, vbottom, white };
+	vertex[5] = { x, y + height, uleft, vbottom, white };
 
 	bgfx::setVertexBuffer(0, &buffer);
 	bgfx::setTexture(0, _TextureSampler, texture, samplerflags);
@@ -475,7 +474,7 @@ void Backend_On_Resize(int drawablewidth, int drawableheight)
 /// <param name="mode">How the frame is filtered when it is drawn larger than it is.</param>
 /// <returns>bool; Was a frame submitted? When not, the window is unchanged and nothing should
 /// be drawn over it.</returns>
-bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode)
+bool Backend_Present(void const * pixels, int pitch, VideoScaleInfo const & frame, BackendScaleMode mode)
 {
 	if (!_Initialized || !bgfx::isValid(_FrameTexture)) {
 		return(false);
@@ -509,6 +508,15 @@ bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 		}
 	}
 
+	int const destwidth = frame.DestWidth;
+	int const destheight = frame.DestHeight;
+	int const sourcewidth = frame.GameWidth;
+	int const sourceheight = frame.GameHeight;
+	float const uleft = (float)frame.SourceX / _FrameWidth;
+	float const vtop = (float)frame.SourceY / _FrameHeight;
+	float const uright = (float)(frame.SourceX + sourcewidth) / _FrameWidth;
+	float const vbottom = (float)(frame.SourceY + sourceheight) / _FrameHeight;
+
 	bgfx::TextureHandle source = _FrameTexture;
 	unsigned int samplerflags = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
 	bool from_prescale = false;
@@ -521,21 +529,21 @@ bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 	// point sampling; anything else is magnified to the next whole multiple with point
 	// sampling and then shrunk to the window smoothly, which keeps edges sharp without
 	// the uneven pixel sizes that point sampling alone would give.
-	if (mode == BACKEND_SCALE_PIXELART && destwidth > _FrameWidth && destheight > _FrameHeight) {
-		if ((destwidth % _FrameWidth) == 0 && (destheight % _FrameHeight) == 0) {
+	if (mode == BACKEND_SCALE_PIXELART && destwidth > sourcewidth && destheight > sourceheight) {
+		if ((destwidth % sourcewidth) == 0 && (destheight % sourceheight) == 0) {
 			samplerflags |= BGFX_SAMPLER_POINT;
 		} else {
-			int scale = (destwidth + _FrameWidth - 1) / _FrameWidth;
-			int scaley = (destheight + _FrameHeight - 1) / _FrameHeight;
+			int scale = (destwidth + sourcewidth - 1) / sourcewidth;
+			int scaley = (destheight + sourceheight - 1) / sourceheight;
 			if (scaley > scale) {
 				scale = scaley;
 			}
 
-			if (Ensure_Prescale_Target(_FrameWidth * scale, _FrameHeight * scale)) {
+			if (Ensure_Prescale_Target(sourcewidth * scale, sourceheight * scale)) {
 				bgfx::setViewFrameBuffer(VIEW_PRESCALE, _PrescaleTarget);
 				bgfx::setViewClear(VIEW_PRESCALE, BGFX_CLEAR_COLOR, 0x000000FF);
 				Set_View_Transform(VIEW_PRESCALE, _PrescaleWidth, _PrescaleHeight);
-				if (Submit_Quad(VIEW_PRESCALE, _FrameTexture, 0.0f, 0.0f, (float)_PrescaleWidth, (float)_PrescaleHeight, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_POINT)) {
+				if (Submit_Quad(VIEW_PRESCALE, _FrameTexture, 0.0f, 0.0f, (float)_PrescaleWidth, (float)_PrescaleHeight, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_POINT, uleft, vtop, uright, vbottom)) {
 					source = bgfx::getTexture(_PrescaleTarget);
 					from_prescale = true;
 				}
@@ -552,7 +560,10 @@ bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 	_FramePointSampled = (samplerflags & BGFX_SAMPLER_POINT) != 0;
 
 	bool flipv = from_prescale && bgfx::getCaps()->originBottomLeft;
-	return(Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv));
+	return(Submit_Quad(VIEW_PRESENT, source, (float)frame.DestX, (float)frame.DestY,
+		(float)destwidth, (float)destheight, samplerflags, from_prescale ? 0.0f : uleft,
+		from_prescale ? (flipv ? 1.0f : 0.0f) : vtop, from_prescale ? 1.0f : uright,
+		from_prescale ? (flipv ? 0.0f : 1.0f) : vbottom));
 }
 
 

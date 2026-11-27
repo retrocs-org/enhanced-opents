@@ -17,6 +17,7 @@
 #include "ui/uienginehost.h"
 #include "ui/uishell.h"
 #include "ui/uiview.h"
+#include "video.h"
 
 
 namespace
@@ -42,6 +43,8 @@ bool UI_Restate_Mission(char const * text, bool video)
 	UIRestateEngineServiceClass service;
 	UIRestatePresenterClass presenter(service, UIShell.Clock(), (text != NULL) ? text : "", video);
 	std::unique_ptr<UIViewClass> view = UI_Restate_View(presenter);
+	VideoPresentationScope briefing_presentation;
+	briefing_presentation.Set(640, 400);
 	UIResult result = UI_Run_Modal(*view);
 
 	return(result == UI_RESULT_ACCEPTED && presenter.ChoseVideo);

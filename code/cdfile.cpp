@@ -52,12 +52,12 @@ CDFileClass::SearchDriveType * CDFileClass::First = NULL;
 // Where this player's own files are kept, ending in a separator, or empty when the player
 // has no directory of their own.
 static std::string UserPath;
+static std::string DataPath;
 
 
 /// <summary>
 /// Constructs a CD file object for the file specified.
-/// The name is searched for in the player's own directory, the current directory and every
-/// configured path, so the object refers to the first matching local file.
+/// Refers to the first matching file in the search order.
 /// </summary>
 /// <param name="filename">The name of the file this object should refer to.</param>
 CDFileClass::CDFileClass(char const *filename) :
@@ -187,6 +187,12 @@ void CDFileClass::Set_User_Path(char const * path)
 }
 
 
+void CDFileClass::Set_Data_Path(char const * path)
+{
+	DataPath = path;
+}
+
+
 char const * CDFileClass::User_Path(void)
 {
 	return(UserPath.empty() ? NULL : UserPath.c_str());
@@ -206,23 +212,13 @@ bool CDFileClass::Has_Directory(char const * filename)
 }
 
 
-/// <summary>
-/// Works out where a file belongs once it is the player's own.
-/// </summary>
-/// <param name="filename">The name the game asked for.</param>
-/// <param name="buffer">Receives the pathname when one can be built.</param>
-/// <param name="size">The size of that buffer.</param>
-/// <returns>bool; Was a pathname built? It fails when the player has no directory of their
-/// own, when the caller has already named one, or when the two will not make one pathname.</returns>
-bool CDFileClass::User_Path_For(char const * filename, char * buffer, int size)
+std::string CDFileClass::User_Path_For(char const * filename)
 {
-	if (UserPath.empty() || filename == NULL) return(false);
-	if (Has_Directory(filename)) return(false);
-	if ((int)(UserPath.length() + strlen(filename)) >= size) return(false);
-
-	strcpy(buffer, UserPath.c_str());
-	strcat(buffer, filename);
-	return(true);
+	if (UserPath.empty() || filename == NULL || Has_Directory(filename)) return(std::string());
+#ifdef _WIN32
+	if (UserPath.length() + strlen(filename) >= _MAX_PATH) return(std::string());
+#endif
+	return(UserPath + filename);
 }
 
 
@@ -255,13 +251,8 @@ void CDFileClass::Point_At_Own_Copy(void)
 {
 	if (IsDisabled || RequestedName == NULL) return;
 
-	char path[_MAX_PATH];
-
-	if (User_Path_For(RequestedName, path, sizeof(path))) {
-		BASECLASS::Set_Name(path);
-	} else {
-		BASECLASS::Set_Name(RequestedName);
-	}
+	std::string const path = User_Path_For(RequestedName);
+	BASECLASS::Set_Name(path.empty() ? RequestedName : path.c_str());
 }
 
 
@@ -334,63 +325,37 @@ char const * CDFileClass::Set_Name(char const *filename)
 	// A file this player's own game wrote is the one that answers, whatever a deployment
 	// ships under the same name.
 	if (!IsDisabled) {
-		char path[_MAX_PATH];
-
-		if (User_Path_For(filename, path, sizeof(path))) {
-			BASECLASS::Set_Name(path);
+		std::string const path = User_Path_For(filename);
+		if (!path.empty()) {
+			BASECLASS::Set_Name(path.c_str());
 			if (BASECLASS::Is_Available()) {
 				return(File_Name());
 			}
 		}
 	}
 
-	/*
-	**	Try to find the file in the current directory first. If it can be found, then
-	**	just return with the normal file name setting process. Do the same if there is
-	**	no multi-drive search path.
-	*/
-	BASECLASS::Set_Name(filename);
-	if (IsDisabled || !First || filename == NULL || BASECLASS::Is_Available()) return(File_Name());
+	bool const use_data_path = !DataPath.empty() && !Has_Directory(filename);
+	if (IsDisabled || filename == NULL || !use_data_path) {
+		BASECLASS::Set_Name(filename);
+		if (IsDisabled || !First || filename == NULL || BASECLASS::Is_Available()) return(File_Name());
+	}
 
-	/*
-	**	Attempt to find the file first. Check the current directory. If not found there, then
-	**	search all the path specifications available. If it still can't be found, then just
-	**	fall into the normal raw file filename setting system.
-	*/
 	SearchDriveType * srch = First;
 
-	while (srch) {
-		char path[_MAX_PATH];
-
-		// A directory and a name that will not make one pathname between them are passed
-		// over rather than truncated into a different name.
-		if (strlen(srch->Path) + strlen(filename) < sizeof(path)) {
-
-			/*
-			**	Build a pathname to search for.
-			*/
-			strcpy(path, srch->Path);
-			strcat(path, filename);
-
-			// Check this path. Is_Available returns false when the file cannot be opened,
-			// allowing the search to continue with the next configured path.
-			BASECLASS::Set_Name(path);
-			if (BASECLASS::Is_Available()) {
-				return(File_Name());
-			}
-		}
-
-		/*
-		**	It wasn't found, so try the next path entry.
-		*/
-		srch = (SearchDriveType *)srch->Next;
+	for (; srch != nullptr; srch = (SearchDriveType *)srch->Next) {
+#ifdef _WIN32
+		if (strlen(srch->Path) + strlen(filename) >= _MAX_PATH) continue;
+#endif
+		std::string const path = std::string(srch->Path) + filename;
+		BASECLASS::Set_Name(path.c_str());
+		if (BASECLASS::Is_Available()) return(File_Name());
 	}
 
-	/*
-	**	At this point, all path searching has failed. Just set the file name to the
-	**	plain text passed to this routine and be done with it.
-	*/
-	BASECLASS::Set_Name(filename);
+	if (use_data_path) {
+		BASECLASS::Set_Name((DataPath + filename).c_str());
+	} else {
+		BASECLASS::Set_Name(filename);
+	}
 	return(File_Name());
 }
 

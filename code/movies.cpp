@@ -30,6 +30,13 @@ VQHandle *CurrentVQ = NULL;
 int MovieInt1 = 0;
 
 
+static Surface * Movie_Draw_Surface(void)
+{
+	if (CurrentVQ == nullptr) return(nullptr);
+	return(CurrentVQ->DrawToRadar ? SidebarSurface : CurrentVQ->DrawSurface);
+}
+
+
 /// <summary>
 /// Locks the drawing surface for the movie player.
 /// This routine is handed to the movie player as its buffer callback. As well as mapping the
@@ -39,7 +46,8 @@ int MovieInt1 = 0;
 /// <returns>Returns with a pointer to the locked surface memory.</returns>
 void * Movie_Lock_Surface(void)
 {
-	Surface *surf = CurrentVQ->DrawSurface;
+	Surface * surf = Movie_Draw_Surface();
+	if (surf == nullptr) return(nullptr);
 	void *buffptr = surf->Lock();
 	VQAClass * vqa = CurrentVQ->VQA;
 
@@ -62,7 +70,8 @@ void * Movie_Lock_Surface(void)
 /// <returns>bool; Was the surface released?</returns>
 bool Movie_Unlock_Surface(void)
 {
-	return(CurrentVQ->DrawSurface->Unlock());
+	Surface * surf = Movie_Draw_Surface();
+	return(surf != nullptr && surf->Unlock());
 }
 
 
@@ -215,6 +224,7 @@ void Movie_Play(VQHandle *movie, bool hide_mouse, ThemeType theme, bool user_bre
 	if (CurrentVQ == NULL) {
 		movie->IsInitialized = true;
 		CurrentVQ = movie;
+		Video_Set_Movie_Presentation(true);
 		int start_frame = 0;
 		int end_frame = -1;
 		int iterations = 0;
@@ -265,6 +275,7 @@ void Movie_Play(VQHandle *movie, bool hide_mouse, ThemeType theme, bool user_bre
 			Show_Mouse();
 		}
 
+		Video_Set_Movie_Presentation(false);
 		CurrentVQ = NULL;
 	}
 }
@@ -340,6 +351,9 @@ void Movie_Resume(VQHandle * handle)
 void Movie_Queue_Ingame(VQHandle * handle)
 {
 	if (handle != NULL && handle->VQA != NULL) {
+		// Display changes can replace the sidebar while a radar movie is queued or paused.
+		handle->DrawToRadar = true;
+		handle->DrawSurface = nullptr;
 		handle->InitialRect.X = Map.RadX + Map.RadOffX;
 		handle->InitialRect.Y = Map.RadY + Map.RadOffY;
 		handle->StretchRect = handle->InitialRect;
@@ -356,7 +370,7 @@ void Movie_Queue_Ingame(VQHandle * handle)
 /// </summary>
 void Movie_Update_Visible_Surface(void)
 {
-	if (CurrentVQ != NULL) {
+	if (CurrentVQ != NULL && !CurrentVQ->DrawToRadar) {
 		AlternateSurface->Fill(0);
 		Update_Visible_Surface(AlternateSurface);
 		Movie_Blit_To_Screen();
@@ -372,6 +386,7 @@ void Movie_Update_Visible_Surface(void)
 VQHandle::VQHandle(void) :
 	VQA(NULL),
 	DrawSurface(NULL),
+	DrawToRadar(false),
 	PlayMode(0),
 	StartFrame(0),
 	EndFrame(0),

@@ -173,6 +173,9 @@
 #else
 #include "posixpaths.h"
 #include <sys/file.h>
+#ifdef __APPLE__
+#include "platform/posix/macos/gamedatapicker.h"
+#endif
 #endif
 
 extern	HINSTANCE LanguageResources;
@@ -355,21 +358,132 @@ static int Build_Arguments(char const * path_to_exe, char ** & argv)
  * The arguments main() received, with the executable left out.
  */
 static std::vector<std::string> PosixArguments;
+#ifdef __APPLE__
+static bool DataDirectoryOnCommandLine;
+#endif
 
 
-static bool Has_Data_Marker(std::string const & directory)
+static std::vector<std::string> Posix_Data_Candidates()
 {
-	if (directory.empty()) {
+	std::string const user = Posix_User_Directory();
+	return {
+		Posix_Bundle_Parent_Directory(),
+		Posix_Executable_Directory(),
+		user.empty() ? std::string() : user + "TiberianSun/",
+	};
+}
+
+
+#ifndef _DEMO
+static std::string Missing_Game_Data_Message(char const * archive)
+{
+	std::string message = (archive == nullptr) ? "OpenTS could not find the Tiberian Sun game archives."
+		: "OpenTS could not load " + std::string(archive) + ".";
+	message += "\n\nCopy the complete original game installation, including TIBSUN.MIX, "
+		"to one of the game-data folders or use -DATADIR= to name its location. "
+		"Startup needs CACHE.MIX and CONQUER.MIX, which can be inside TIBSUN.MIX.\n\n"
+		"Folders checked:";
+	std::string const data = Data_Directory();
+	if (data.empty()) {
+		for (std::string const & directory : Posix_Data_Candidates()) {
+			if (!directory.empty()) message += "\n  " + directory;
+		}
+	}
+	char const * user = CDFileClass::User_Path();
+	if (user != nullptr) message += "\n  " + std::string(user);
+	for (int index = 0; char const * path = CDFileClass::Search_Path(index); index++) {
+		message += "\n  " + std::string(path);
+	}
+	std::string const log = Debug_Log_File_Path().string();
+	if (!log.empty()) message += "\n\nDebug log: " + log;
+	DebugString("%s\n", message.c_str());
+	return(message);
+}
+#endif
+
+
+static bool Has_Game_Archive(std::string const & directory, char const * name)
+{
+	if (directory.empty()) return(false);
+	std::string const path = (std::filesystem::path(directory) / name).string();
+	DWORD const attributes = GetFileAttributesA(path.c_str());
+	if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
 		return(false);
 	}
-	WIN32_FIND_DATA block;
-	HANDLE const handle = FindFirstFile((directory + "TIBSUN.MIX").c_str(), &block);
-	if (handle == INVALID_HANDLE_VALUE) {
-		return(false);
-	}
-	FindClose(handle);
+	HANDLE const handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (handle == INVALID_HANDLE_VALUE) return(false);
+	CloseHandle(handle);
 	return(true);
 }
+
+
+#ifdef __APPLE__
+static bool Has_Game_Data(std::string const & directory)
+{
+	return(Has_Game_Archive(directory, "TIBSUN.MIX") ||
+		(Has_Game_Archive(directory, "CACHE.MIX") && Has_Game_Archive(directory, "CONQUER.MIX")));
+}
+
+
+#ifndef _DEMO
+static std::string Locate_Game_Data(std::string const & message)
+{
+	if (DataDirectoryOnCommandLine || Headless::Is_Active() || Launch::Has_Result_File()) {
+		Main_Window_Error_Box(Fetch_String(TXT_SHORT_TITLE), message.c_str());
+		return(std::string());
+	}
+
+	std::string prompt = message;
+	while (Main_Window_Confirm_Box("OpenTS", prompt.c_str(), "Locate Game Data...", "Quit")) {
+		std::string const folder = Mac_Choose_Data_Directory(Posix_User_Directory());
+		if (folder.empty()) break;
+		if (Has_Game_Data(folder)) {
+			Mac_Store_Data_Directory(folder);
+			return(folder);
+		}
+		prompt = "The selected folder does not contain readable Tiberian Sun game archives. "
+			"Choose the folder containing TIBSUN.MIX, or both CACHE.MIX and CONQUER.MIX. You can also select ISO files to import.\n\n" + folder;
+	}
+	return(std::string());
+}
+#endif
+#endif
+
+
+#ifndef _DEMO
+void Report_Missing_Game_Data(char const * archive)
+{
+	std::string const message = Missing_Game_Data_Message(archive);
+#ifdef __APPLE__
+	if (!Locate_Game_Data(message).empty()) {
+		Main_Window_Error_Box("OpenTS", "Game data location saved. Reopen OpenTS to use it.");
+	}
+#else
+	Main_Window_Error_Box(Fetch_String(TXT_SHORT_TITLE), message.c_str());
+#endif
+}
+static bool Recover_Missing_Game_Data()
+{
+#ifdef __APPLE__
+	std::string const folder = Locate_Game_Data(Missing_Game_Data_Message(nullptr));
+	if (folder.empty()) return(false);
+
+	CDFileClass::Clear_Search_Drives();
+	Set_Data_Directory(folder.c_str());
+	if (!Apply_Game_Directories()) {
+		Main_Window_Error_Box("OpenTS", Game_Directory_Error());
+		return(false);
+	}
+	DeploymentConfig.Read_File(Data_Directory().c_str());
+	Init_Search_Folders(DeploymentConfig.SearchPaths.c_str());
+	return(true);
+#else
+	Report_Missing_Game_Data(nullptr);
+	return(false);
+#endif
+}
+#endif
 
 
 static bool Has_Option(char const * prefix)
@@ -401,14 +515,21 @@ static void Set_Posix_Arguments(int argc, char ** argv)
 
 	std::string const user = Posix_User_Directory();
 
-	if (!Has_Option("-DATADIR=")) {
-		std::string const candidates[] = {
-			Posix_Bundle_Parent_Directory(),
-			Posix_Executable_Directory(),
-			user.empty() ? std::string() : user + "TiberianSun/",
-		};
+	bool const explicit_data = Has_Option("-DATADIR=");
+#ifdef __APPLE__
+	DataDirectoryOnCommandLine = explicit_data;
+#endif
+	if (!explicit_data) {
+		std::vector<std::string> candidates = Posix_Data_Candidates();
+#ifdef __APPLE__
+		std::string const saved = Mac_Stored_Data_Directory();
+		if (Has_Game_Data(saved)) {
+			PosixArguments.push_back("-DATADIR=" + saved);
+			candidates.clear();
+		}
+#endif
 		for (std::string const & candidate : candidates) {
-			if (Has_Data_Marker(candidate)) {
+			if (Has_Game_Archive(candidate, "TIBSUN.MIX")) {
 				PosixArguments.push_back("-DATADIR=" + candidate);
 				break;
 			}
@@ -577,7 +698,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 {
 	int		argc;       //Command line argument count
 	char **	argv;       //Pointers to command line arguments
+#ifdef _WIN32
 	char	path_to_exe[MAX_PATH];
+#endif
 	char	buffer[512];
 
 	// First, so that everything after it is covered, including the rest of this function.
@@ -624,6 +747,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 	/*
 	**	Get the full path to the .EXE
 	*/
+#ifdef _WIN32
 	GetModuleFileName (instance, &path_to_exe[0], sizeof(path_to_exe));
 
 	/*
@@ -642,6 +766,11 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 	_splitpath(argv[0], drive, dir, NULL, NULL);
 	_makepath(path, drive, dir, NULL, NULL);
 	SetCurrentDirectory(path);
+#else
+	std::string const executable = Posix_Executable_Path();
+	argc = Build_Arguments(executable.c_str(), argv);
+	SetCurrentDirectory(Posix_Executable_Directory().c_str());
+#endif
 
 	int error_code = EXIT_FAILURE;
 
@@ -669,6 +798,13 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 		 */
 		DeploymentConfig.Read_File(Data_Directory().c_str());
 		Init_Search_Folders(DeploymentConfig.SearchPaths.c_str());
+
+#if !defined(_WIN32) && !defined(_DEMO)
+		if (Search_Files("*.MIX").empty() && !Recover_Missing_Game_Data()) {
+			Launch::Write_Result();
+			return(EXIT_FAILURE);
+		}
+#endif
 
 #if defined(_WIN32)
 		std::string uidirectory = path;
@@ -729,9 +865,12 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 			Options.ScreenHeight = 480;
 		}
 
-		VisibleRect = Rect(0, 0, Options.ScreenWidth, Options.ScreenHeight);
 		VideoModeWidth = Options.ScreenWidth;
 		VideoModeHeight = Options.ScreenHeight;
+		Video_Gameplay_Size(VideoModeWidth, VideoModeHeight);
+		Video_Set_HUD_Scale(Options.ScreenWidth, Options.ScreenHeight);
+		VisibleRect = Rect(0, 0, VideoModeWidth, VideoModeHeight);
+		DebugString("Gameplay render size: %dx%d\n", VideoModeWidth, VideoModeHeight);
 
 		if (!Game_Window_Open(Options.ScreenWidth, Options.ScreenHeight)) {
 			Main_Window_Error_Box(Fetch_String(TXT_SHORT_TITLE), Fetch_String(TXT_VIDEO_ERROR));
@@ -776,9 +915,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 
 		VisibleSurface->Fill(0);
 
-		Rect sidebar_rect(0,0,SidebarClass::SIDE_WIDTH,VisibleRect.Height);
-		Rect tile_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
-		Rect composite_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
+		Rect sidebar_rect(0, 0, SidebarClass::SIDE_WIDTH, Video_Sidebar_Height());
+		Rect tile_rect(0, 0, VisibleRect.Width - Video_Sidebar_Width(), VisibleRect.Height);
+		Rect composite_rect = tile_rect;
 
 		Allocate_Surfaces(VisibleRect, composite_rect, tile_rect, sidebar_rect, false);
 		LogicalSurface = HiddenSurface;
@@ -837,7 +976,14 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int )
 		 * either, so a directory the game cannot use is reported where it will be seen.
 		 */
 		if (*Game_Directory_Error() != '\0') {
+#ifdef _WIN32
 			Main_Window_Error_Box(Fetch_String(TXT_SHORT_TITLE), Game_Directory_Error());
+#else
+			std::string message = Game_Directory_Error();
+			std::string const log = Debug_Log_File_Path().string();
+			if (!log.empty()) message += "\n\nDebug log: " + log;
+			Main_Window_Error_Box(Fetch_String(TXT_SHORT_TITLE), message.c_str());
+#endif
 		} else if (Launch::Refusal() != NULL) {
 			Main_Window_Error_Box(Fetch_String(TXT_SHORT_TITLE), Launch::Refusal());
 		}

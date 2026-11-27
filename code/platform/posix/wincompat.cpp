@@ -12,10 +12,6 @@
 #include "wincompat.h"
 #include "posixpaths.h"
 
-#include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_messagebox.h>
-#include <SDL3/SDL_mouse.h>
-
 #include <algorithm>
 #include <atomic>
 #include <cerrno>
@@ -88,6 +84,14 @@ std::string Resolve_Case(std::string const & path)
 		return path;
 	}
 
+#ifdef _PC_CASE_SENSITIVE
+	auto const slash = path.find_last_of('/');
+	std::string const parent_path = slash == std::string::npos ? "." : path.substr(0, std::max(std::size_t{1}, slash));
+	if (pathconf(parent_path.c_str(), _PC_CASE_SENSITIVE) == 0) {
+		return path;
+	}
+#endif
+
 	std::string resolved;
 	size_t start = 0;
 	if (path[0] == '/') {
@@ -103,7 +107,11 @@ std::string Resolve_Case(std::string const & path)
 
 		if (!part.empty() && part != "." && part != "..") {
 			std::string const candidate = (resolved.empty() ? "" : resolved) + part;
-			if (lstat(candidate.c_str(), &info) != 0) {
+			if (lstat(candidate.c_str(), &info) != 0
+#ifdef _PC_CASE_SENSITIVE
+				&& pathconf(parent.c_str(), _PC_CASE_SENSITIVE) != 0
+#endif
+			) {
 				if (DIR * dir = opendir(parent.c_str())) {
 					while (dirent * entry = readdir(dir)) {
 						if (strcasecmp(entry->d_name, part.c_str()) == 0) {
@@ -764,10 +772,13 @@ BOOL WriteFile(HANDLE handle, void const * buffer, DWORD count, DWORD * written,
 BOOL CloseHandle(HANDLE handle)
 {
 	if (FileHandle * file = As_File(handle)) {
-		close(file->Descriptor);
+		int const result = close(file->Descriptor);
+		DWORD const error = result == 0 ? ERROR_SUCCESS : Error_From_Errno(errno);
 		file->Magic = 0;
 		delete file;
-		return TRUE;
+		if (result == 0) return TRUE;
+		LastError = error;
+		return FALSE;
 	}
 	LastError = ERROR_INVALID_HANDLE;
 	return FALSE;
@@ -1231,96 +1242,4 @@ int GetSystemMetrics(int index)
 		case SM_CYDOUBLECLK:	return 4;
 		default:				return 0;
 	}
-}
-
-
-SHORT GetKeyState(int virtualkey)
-{
-	bool const * keys = SDL_GetKeyboardState(nullptr);
-	SDL_MouseButtonFlags const buttons = SDL_GetMouseState(nullptr, nullptr);
-	SDL_Keymod const modifiers = SDL_GetModState();
-	bool held = false;
-
-	switch (virtualkey) {
-		case VK_LBUTTON:	held = (buttons & SDL_BUTTON_LMASK) != 0; break;
-		case VK_RBUTTON:	held = (buttons & SDL_BUTTON_RMASK) != 0; break;
-		case VK_MBUTTON:	held = (buttons & SDL_BUTTON_MMASK) != 0; break;
-		case VK_XBUTTON1:	held = (buttons & SDL_BUTTON_X1MASK) != 0; break;
-		case VK_XBUTTON2:	held = (buttons & SDL_BUTTON_X2MASK) != 0; break;
-		case VK_SHIFT:		held = keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]; break;
-		case VK_LSHIFT:		held = keys[SDL_SCANCODE_LSHIFT]; break;
-		case VK_RSHIFT:		held = keys[SDL_SCANCODE_RSHIFT]; break;
-		case VK_CONTROL:	held = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL]; break;
-		case VK_LCONTROL:	held = keys[SDL_SCANCODE_LCTRL]; break;
-		case VK_RCONTROL:	held = keys[SDL_SCANCODE_RCTRL]; break;
-		case VK_MENU:		held = keys[SDL_SCANCODE_LALT] || keys[SDL_SCANCODE_RALT]; break;
-		case VK_LMENU:		held = keys[SDL_SCANCODE_LALT]; break;
-		case VK_RMENU:		held = keys[SDL_SCANCODE_RALT]; break;
-		case VK_CAPITAL:	return (SHORT)((keys[SDL_SCANCODE_CAPSLOCK] ? 0x8000 : 0) | ((modifiers & SDL_KMOD_CAPS) ? 1 : 0));
-		case VK_NUMLOCK:	return (SHORT)((keys[SDL_SCANCODE_NUMLOCKCLEAR] ? 0x8000 : 0) | ((modifiers & SDL_KMOD_NUM) ? 1 : 0));
-		case VK_SCROLL:		return (SHORT)((keys[SDL_SCANCODE_SCROLLLOCK] ? 0x8000 : 0) | ((modifiers & SDL_KMOD_SCROLL) ? 1 : 0));
-		default:			break;
-	}
-	return (SHORT)(held ? 0x8000 : 0);
-}
-
-
-int MessageBoxA(HWND, char const * text, char const * caption, UINT type)
-{
-	SDL_MessageBoxButtonData buttons[3];
-	int count = 0;
-	int const style = type & 0xF;
-
-	auto add = [&](int id, char const * label, Uint32 flags) {
-		buttons[count].flags = flags;
-		buttons[count].buttonID = id;
-		buttons[count].text = label;
-		count++;
-	};
-
-	switch (style) {
-		case MB_OKCANCEL:
-			add(IDOK, "OK", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(IDCANCEL, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-			break;
-		case MB_ABORTRETRYIGNORE:
-			add(IDABORT, "Abort", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-			add(IDRETRY, "Retry", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(IDIGNORE, "Ignore", 0);
-			break;
-		case MB_YESNOCANCEL:
-			add(IDYES, "Yes", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(IDNO, "No", 0);
-			add(IDCANCEL, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-			break;
-		case MB_YESNO:
-			add(IDYES, "Yes", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(IDNO, "No", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-			break;
-		case MB_RETRYCANCEL:
-			add(IDRETRY, "Retry", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(IDCANCEL, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-			break;
-		default:
-			add(IDOK, "OK", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT | SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-			break;
-	}
-
-	Uint32 flags = SDL_MESSAGEBOX_INFORMATION;
-	if ((type & 0xF0) == MB_ICONERROR) flags = SDL_MESSAGEBOX_ERROR;
-	else if ((type & 0xF0) == MB_ICONWARNING) flags = SDL_MESSAGEBOX_WARNING;
-
-	SDL_MessageBoxData data = {};
-	data.flags = flags;
-	data.title = caption != nullptr ? caption : "OpenTS";
-	data.message = text != nullptr ? text : "";
-	data.numbuttons = count;
-	data.buttons = buttons;
-
-	int pressed = buttons[0].buttonID;
-	if (!SDL_ShowMessageBox(&data, &pressed)) {
-		fprintf(stderr, "%s: %s\n", data.title, data.message);
-		return buttons[0].buttonID;
-	}
-	return pressed;
 }

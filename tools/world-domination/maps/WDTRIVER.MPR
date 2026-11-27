@@ -1,0 +1,21 @@
+[Basic]
+Name=River Crossing
+NewINIFormat=4
+MultiplayerOnly=1
+MaxPlayer=2
+MinPlayer=2
+
+[Map]
+Theater=TEMPERATE
+Size=0,0,64,64
+LocalSize=2,4,60,54
+
+[Waypoints]
+0=48048
+1=80080
+
+[Terrain]
+61048=TIBTRE01
+49060=TIBTRE01
+79068=TIBTRE01
+67080=TIBTRE01

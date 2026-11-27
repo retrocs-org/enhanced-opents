@@ -438,17 +438,18 @@ namespace NetTiming
 	}
 
 
-	/// <summary>The solo frame rate for a game speed, 0 fastest to 6 slowest, or zero for no limit.</summary>
+	/// <summary>The solo frame rate for a game speed, 0 fastest to 6 slowest; others get 75.</summary>
 	unsigned int Solo_Game_Speed_Frame_Rate(int game_speed)
 	{
 		switch (game_speed) {
-			case 1: return(60);
-			case 2: return(45);
+			case 0: return(75);
+			case 1: return(55);
+			case 2: return(40);
 			case 3: return(30);
 			case 4: return(20);
 			case 5: return(15);
 			case 6: return(10);
-			default: return(0);
+			default: return(75);
 		}
 	}
 

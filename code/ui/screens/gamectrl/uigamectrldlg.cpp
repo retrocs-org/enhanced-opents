@@ -10,13 +10,18 @@
 #include "always.h"
 
 #include "_map.h"
+#include "_rules.h"
 #include "_tooltip.h"
 #include "_ui.h"
 #include "audio/audioengine.h"
+#include "ccini.h"
 #include "data.h"
 #include "gamedlg.h"
 #include "globals.h"
 #include "goptions.h"
+#include "mainopt.h"
+#include "misc.h"
+#include "newmenu.h"
 #include "queue.h"
 #include "session.h"
 #include "techno.h"
@@ -25,6 +30,10 @@
 #include "ui/uishell.h"
 #include "ui/uiview.h"
 #include "uitooltip.h"
+#include "video.h"
+
+#include <algorithm>
+#include <iterator>
 
 
 namespace
@@ -139,6 +148,14 @@ void UI_Game_Controls_State(UIGameControlsState & state)
 	state.Speed = Is_In_Scenario() ? Session.Pending_Game_Speed() : Options.GameSpeed;
 	state.Scroll = Options.ScrollRate;
 	state.Detail = Options.DetailLevel;
+#ifdef __APPLE__
+	state.HasUIScale = true;
+	state.MenuSize = Video_Menu_UI_Size();
+	auto const first = std::begin(GameplayUIScalePresets);
+	auto const last = std::end(GameplayUIScalePresets);
+	state.UIScale = static_cast<int>(std::find(first, last, Video_Gameplay_UI_Scale()) - first);
+	state.GraphicsScale = static_cast<int>(std::find(first, last, Video_Gameplay_Graphics_Scale()) - first);
+#endif
 	state.Difficulty = Options.Difficulty;
 	state.CameoText = Options.SidebarCameoText;
 	state.ActionLines = Options.ActionLines;
@@ -164,7 +181,29 @@ void UI_Game_Controls_Dialog(void)
 	UIGameControlsPresenterClass presenter(UI_Game_Controls_Service(), state);
 	std::unique_ptr<UIViewClass> view = UI_Game_Controls_View(presenter);
 
-	UI_Run_Modal(*view);
+	UIResult const result = UI_Run_Modal(*view);
+	if (result == UI_RESULT_ACCEPTED) {
+		bool changed = false;
+#ifdef __APPLE__
+		if (presenter.State.MenuSize != state.MenuSize) {
+			ConfigINI.Put_Int("Video", "MenuUISize", presenter.State.MenuSize);
+			changed = true;
+		}
+
+		if (presenter.State.UIScale != state.UIScale || presenter.State.GraphicsScale != state.GraphicsScale) {
+			ConfigINI.Put_Int("Video", "UIScale", GameplayUIScalePresets[presenter.State.UIScale]);
+			ConfigINI.Put_Int("Video", "GraphicsScale", GameplayUIScalePresets[presenter.State.GraphicsScale]);
+			if (Change_Display_Mode(Options.ScreenWidth, Options.ScreenHeight)) {
+				changed = true;
+				if (!state.InGame) Draw_Menu_Background();
+			} else {
+				ConfigINI.Put_Int("Video", "UIScale", GameplayUIScalePresets[state.UIScale]);
+				ConfigINI.Put_Int("Video", "GraphicsScale", GameplayUIScalePresets[state.GraphicsScale]);
+			}
+		}
+#endif
+		if (changed) Options.Save_Settings();
+	}
 
 	if (presenter.Next == UIGameControlsPresenterClass::NEXT_SOUND) {
 		SpecialDialog = SDLG_SOUND;

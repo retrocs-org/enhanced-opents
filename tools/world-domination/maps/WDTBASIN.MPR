@@ -1,0 +1,21 @@
+[Basic]
+Name=Central Basin
+NewINIFormat=4
+MultiplayerOnly=1
+MaxPlayer=2
+MinPlayer=2
+
+[Map]
+Theater=TEMPERATE
+Size=0,0,64,64
+LocalSize=2,4,60,54
+
+[Waypoints]
+0=49049
+1=79079
+
+[Terrain]
+62053=TIBTRE01
+54061=TIBTRE01
+75067=TIBTRE01
+67075=TIBTRE01

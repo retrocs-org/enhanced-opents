@@ -10,9 +10,11 @@
 #include "savefile.h"
 
 #include "crc.h"
+#include "dbgprint.h"
 
 #include <lzo/lzo1x.h>
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -103,12 +105,24 @@ bool Write_Range(HANDLE file, void const * data, std::uint32_t length)
 	while (length > 0) {
 		DWORD const block = (length > 0x100000) ? 0x100000 : length;
 		DWORD written = 0;
-		if (!WriteFile(file, cursor, block, &written, nullptr) || written != block) return(false);
+		if (!WriteFile(file, cursor, block, &written, nullptr)) return(false);
+		if (written != block) {
+			SetLastError(ERROR_SUCCESS);
+			return(false);
+		}
 		cursor += written;
 		length -= written;
 	}
 
 	return(true);
+}
+
+
+void Log_Save_Write_Error(char const * path, char const * operation, DWORD error)
+{
+	char const * detail = error == ERROR_SUCCESS ? "incomplete operation" : Last_Error_Text(error);
+	DebugString("Save %s failed for %s (OS error %lu): %s\n",
+		operation, path, (unsigned long)error, detail);
 }
 
 
@@ -398,26 +412,52 @@ SaveFileClass::ResultType SaveFileClass::Write(char const * path) const
 	// The header checksum covers everything before itself, so it is filled in last.
 	Put_U32(header + 28, Header_CRC(header, table.data(), (std::uint32_t)table.size()));
 
-	std::string const temporary = std::string(path) + ".tmp";
+	static std::atomic<unsigned long long> sequence{0};
+	std::string const prefix = std::string(path) + ".tmp." + std::to_string(GetCurrentProcessId()) + ".";
+	std::string temporary;
+	HANDLE file = INVALID_HANDLE_VALUE;
+	for (int attempt = 0; attempt < 128; attempt++) {
+		temporary = prefix + std::to_string(sequence.fetch_add(1, std::memory_order_relaxed));
+		file = CreateFileA(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+			FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (file != INVALID_HANDLE_VALUE) break;
 
-	HANDLE const file = CreateFileA(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(RESULT_WRITE_FAILED);
-
-	bool ok = Write_Range(file, header, HEADER_SIZE);
-	if (ok && !table.empty()) ok = Write_Range(file, table.data(), (std::uint32_t)table.size());
-	if (ok && payload_length > 0) ok = Write_Range(file, payload, payload_length);
-	if (ok) ok = (FlushFileBuffers(file) != FALSE);
-	if (!CloseHandle(file)) ok = false;
-
-	if (ok) ok = (MoveFileExA(temporary.c_str(), path, MOVEFILE_REPLACE_EXISTING) != FALSE);
-
-	if (!ok) {
-		DeleteFileA(temporary.c_str());
+		DWORD const error = GetLastError();
+		if (error != ERROR_FILE_EXISTS && error != ERROR_ALREADY_EXISTS) {
+			Log_Save_Write_Error(path, "create temporary file", error);
+			return(RESULT_WRITE_FAILED);
+		}
+	}
+	if (file == INVALID_HANDLE_VALUE) {
+		Log_Save_Write_Error(path, "reserve temporary filename", GetLastError());
 		return(RESULT_WRITE_FAILED);
 	}
 
-	return(RESULT_OK);
+	char const * failed = nullptr;
+	DWORD error = ERROR_SUCCESS;
+	if (!Write_Range(file, header, HEADER_SIZE)
+		|| (!table.empty() && !Write_Range(file, table.data(), (std::uint32_t)table.size()))
+		|| (payload_length > 0 && !Write_Range(file, payload, payload_length))) {
+		failed = "write temporary file";
+		error = GetLastError();
+	} else if (!FlushFileBuffers(file)) {
+		failed = "flush temporary file";
+		error = GetLastError();
+	}
+	if (!CloseHandle(file) && failed == nullptr) {
+		failed = "close temporary file";
+		error = GetLastError();
+	}
+
+	if (failed == nullptr) {
+		if (MoveFileExA(temporary.c_str(), path, MOVEFILE_REPLACE_EXISTING)) return(RESULT_OK);
+		failed = "replace destination";
+		error = GetLastError();
+	}
+
+	Log_Save_Write_Error(path, failed, error);
+	DeleteFileA(temporary.c_str());
+	return(RESULT_WRITE_FAILED);
 }
 
 

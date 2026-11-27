@@ -27,4 +27,5 @@ enum {
 	SEL_VIEW_CREDITS,
 	SEL_VERSION,
 	SEL_NONE,						// placeholder default value
+	SEL_MAP_EDITOR,
 };

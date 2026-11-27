@@ -15,23 +15,30 @@
 
 #include "video.h"
 
+#include "_rules.h"
 #include "_surface.h"
 #include "_ui.h"
 #include "_xmouse.h"
 #include "bgfxbackend.h"
+#include "ccini.h"
 #include "dbgprint.h"
 #include "dsurface.h"
 #include "globals.h"
 #include "goptions.h"
+#include "headless.h"
 #include "misc.h"
+#include "sidebar.h"
 #include "sdl/sdlwindow.h"
 #include "surface.h"
 #include "ui/uishell.h"
 #include "videodirty.h"
 #include "wwmouse.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <cmath>
 #include <cstdlib>
+#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -51,6 +58,12 @@ bool WindowedMode = false;
 
 static bool _Initialized = false;
 static VideoScaleInfo _ScaleInfo;
+static bool _MenuPresentation = false;
+static bool _MoviePresentation = false;
+static int _PresentationWidth = 0;
+static int _PresentationHeight = 0;
+static int _SidebarWidth = SidebarClass::SIDE_WIDTH;
+static int _SidebarHeight = 0;
 
 static VideoDirtyStateClass _Dirty;
 
@@ -105,37 +118,173 @@ static void Update_Present_Interval(int refreshrate)
 /// The frame keeps its shape, so it is grown by whichever of the two axes runs out first
 /// and centered in what is left over.
 /// </summary>
-static void Update_Scale_Info(void)
+static VideoScaleInfo Get_Scale_Info(int width, int height)
 {
-	_ScaleInfo.GameWidth = VideoModeWidth;
-	_ScaleInfo.GameHeight = VideoModeHeight;
+	VideoScaleInfo info = _ScaleInfo;
+	info.MenuPresentation = width > 0 && height > 0;
+	info.GameWidth = info.MenuPresentation ? std::min(VideoModeWidth, width) : VideoModeWidth;
+	info.GameHeight = info.MenuPresentation ? std::min(VideoModeHeight, height) : VideoModeHeight;
+	info.SourceX = (VideoModeWidth - info.GameWidth) / 2;
+	info.SourceY = (VideoModeHeight - info.GameHeight) / 2;
 
-	if (_ScaleInfo.GameWidth <= 0 || _ScaleInfo.GameHeight <= 0 || _ScaleInfo.DrawableWidth <= 0 || _ScaleInfo.DrawableHeight <= 0) {
-		_ScaleInfo.DestX = 0;
-		_ScaleInfo.DestY = 0;
-		_ScaleInfo.DestWidth = _ScaleInfo.DrawableWidth;
-		_ScaleInfo.DestHeight = _ScaleInfo.DrawableHeight;
-		_ScaleInfo.ScaleX = 1.0f;
-		_ScaleInfo.ScaleY = 1.0f;
-		return;
+	if (info.GameWidth <= 0 || info.GameHeight <= 0 || info.DrawableWidth <= 0 || info.DrawableHeight <= 0) {
+		info.DestX = 0;
+		info.DestY = 0;
+		info.DestWidth = info.DrawableWidth;
+		info.DestHeight = info.DrawableHeight;
+		info.ScaleX = 1.0f;
+		info.ScaleY = 1.0f;
+		return(info);
 	}
 
-	double scalex = (double)_ScaleInfo.DrawableWidth / (double)_ScaleInfo.GameWidth;
-	double scaley = (double)_ScaleInfo.DrawableHeight / (double)_ScaleInfo.GameHeight;
+	double scalex = (double)info.DrawableWidth / (double)info.GameWidth;
+	double scaley = (double)info.DrawableHeight / (double)info.GameHeight;
 	double scale = (scalex < scaley) ? scalex : scaley;
 
 	if (Options.IntegerScaling && scale >= 1.0) {
 		scale = (double)(int)scale;
 	}
 
-	_ScaleInfo.DestWidth = (int)((double)_ScaleInfo.GameWidth * scale);
-	_ScaleInfo.DestHeight = (int)((double)_ScaleInfo.GameHeight * scale);
-	_ScaleInfo.DestX = (_ScaleInfo.DrawableWidth - _ScaleInfo.DestWidth) / 2;
-	_ScaleInfo.DestY = (_ScaleInfo.DrawableHeight - _ScaleInfo.DestHeight) / 2;
-	_ScaleInfo.ScaleX = (float)((double)_ScaleInfo.DestWidth / (double)_ScaleInfo.GameWidth);
-	_ScaleInfo.ScaleY = (float)((double)_ScaleInfo.DestHeight / (double)_ScaleInfo.GameHeight);
+	info.DestWidth = (int)((double)info.GameWidth * scale);
+	info.DestHeight = (int)((double)info.GameHeight * scale);
+	info.DestX = (info.DrawableWidth - info.DestWidth) / 2;
+	info.DestY = (info.DrawableHeight - info.DestHeight) / 2;
+	info.ScaleX = (float)((double)info.DestWidth / (double)info.GameWidth);
+	info.ScaleY = (float)((double)info.DestHeight / (double)info.GameHeight);
+	return(info);
 }
 
+
+static void Update_Scale_Info()
+{
+		int const width = _PresentationWidth > 0 ? _PresentationWidth : (_MenuPresentation ? 640 : 0);
+	int const height = _PresentationHeight > 0 ? _PresentationHeight : (_MenuPresentation ? 480 : 0);
+	_ScaleInfo = Get_Scale_Info(width, height);
+}
+
+
+void Video_Set_Menu_Presentation(bool enabled)
+{
+	if (_MenuPresentation == enabled) return;
+	_MenuPresentation = enabled;
+	Update_Scale_Info();
+	Refresh_Mouse_Pointer();
+	UIShell.On_Video_Change();
+	Video_Mark_Overlay_Dirty();
+}
+
+
+VideoPresentationScope::VideoPresentationScope() :
+	Width(_PresentationWidth), Height(_PresentationHeight)
+{
+}
+
+
+VideoPresentationScope::~VideoPresentationScope()
+{
+	Set(Width, Height);
+}
+
+
+void VideoPresentationScope::Set(int width, int height)
+{
+	if (width == _PresentationWidth && height == _PresentationHeight) return;
+	_PresentationWidth = width;
+	_PresentationHeight = height;
+	Update_Scale_Info();
+	Refresh_Mouse_Pointer();
+	UIShell.On_Video_Change();
+	Video_Mark_Overlay_Dirty();
+}
+
+
+static int Gameplay_Scale(char const * key, int fallback)
+{
+#ifdef __APPLE__
+	int const scale = ConfigINI.Get_Int("Video", key, fallback);
+	if (std::find(std::begin(GameplayUIScalePresets), std::end(GameplayUIScalePresets), scale) != std::end(GameplayUIScalePresets)) {
+		return(scale);
+	}
+	return(fallback);
+#else
+	(void)key;
+	return(fallback);
+#endif
+}
+
+
+int Video_Gameplay_UI_Scale()
+{
+#ifdef __APPLE__
+	int const legacy = ConfigINI.Get_Bool("Video", "NativeGameplayResolution", false) ? 0 : 100;
+	return(Gameplay_Scale("UIScale", legacy));
+#else
+	return(0);
+#endif
+}
+
+
+int Video_Gameplay_Graphics_Scale()
+{
+	return(Gameplay_Scale("GraphicsScale", Video_Gameplay_UI_Scale()));
+}
+
+
+int Video_Menu_UI_Size()
+{
+	return(std::clamp(ConfigINI.Get_Int("Video", "MenuUISize", 2), 0, 2));
+}
+
+
+static void Gameplay_Size(int & width, int & height, int percent)
+{
+	if (width > 0 && height > 0 && percent > 0) {
+		double const factor = 100.0 / percent;
+		double const scale = std::min({1.0, 1280.0 * factor / width, 800.0 * factor / height});
+		width = std::max(std::min(width, 640), static_cast<int>(width * scale));
+		height = std::max(std::min(height, 400), static_cast<int>(height * scale));
+	}
+}
+
+
+void Video_Gameplay_Size(int & width, int & height)
+{
+	Gameplay_Size(width, height, Video_Gameplay_Graphics_Scale());
+}
+
+
+void Video_Set_HUD_Scale(int width, int height)
+{
+	Gameplay_Size(width, height, Video_Gameplay_UI_Scale());
+	_SidebarHeight = VideoModeHeight;
+	_SidebarWidth = SidebarClass::SIDE_WIDTH;
+#ifdef __APPLE__
+	if (!Headless::Is_Active() && !Debug_Map && height > 0 && VideoModeHeight > 0) {
+		_SidebarHeight = height;
+		double const ratio = static_cast<double>(VideoModeHeight) / height;
+		_SidebarWidth = std::clamp(static_cast<int>(std::lround(SidebarClass::SIDE_WIDTH * ratio)),
+			1, std::max(1, VideoModeWidth - 320));
+	}
+#endif
+}
+
+
+int Video_Sidebar_Width()
+{
+	return(_SidebarWidth);
+}
+
+
+int Video_Sidebar_Height()
+{
+	return(_SidebarHeight);
+}
+
+
+void Video_Set_Movie_Presentation(bool enabled)
+{
+	_MoviePresentation = enabled;
+}
 
 /// <summary>
 /// Converts the configured filter into the one the renderer names.
@@ -328,7 +477,8 @@ static void Present(void)
 	_LastPresentTime = timeGetTime();
 
 	_Presenting = true;
-	bool presented = Backend_Present(pixels, surface->Stride(), _ScaleInfo.DestX, _ScaleInfo.DestY, _ScaleInfo.DestWidth, _ScaleInfo.DestHeight, Backend_Scale_Mode());
+	VideoScaleInfo const frame = _ScaleInfo.MenuPresentation && _MoviePresentation ? Get_Scale_Info(0, 0) : _ScaleInfo;
+	bool presented = Backend_Present(pixels, surface->Stride(), frame, Backend_Scale_Mode());
 	if (presented) {
 		if (snapshot.Upload) {
 			_Dirty.Upload_Completed();
@@ -378,8 +528,7 @@ void Video_Present_If_Dirty(void)
 		return;
 	}
 
-	unsigned int now = timeGetTime();
-	if ((now - _LastPresentTime) < _PresentInterval) {
+	if (!Video_Presentation_Due()) {
 		return;
 	}
 
@@ -409,6 +558,12 @@ VideoScaleInfo const & Video_Get_Scale_Info(void)
 unsigned int Video_Presents_Per_Second(void)
 {
 	return(_PresentsLastSecond);
+}
+
+
+bool Video_Presentation_Due(void)
+{
+	return(timeGetTime() - _LastPresentTime >= _PresentInterval);
 }
 
 

@@ -91,6 +91,10 @@ static int Cursor_Scale(void)
 	}
 
 	VideoScaleInfo const & scale = Video_Get_Scale_Info();
+	if (scale.MenuPresentation) {
+		return(1);
+	}
+
 	float smaller = scale.ScaleX < scale.ScaleY ? scale.ScaleX : scale.ScaleY;
 
 	int result = (int)(smaller + 0.5f);
@@ -456,13 +460,9 @@ void WWMouseClass::Client_To_Game(int & x, int & y) const
 	Point2D point(x, y);
 	Window_Point_To_Game(point);
 
-	VideoScaleInfo const & scale = Video_Get_Scale_Info();
+	Clamp_To_Game(point);
 	x = point.X;
 	y = point.Y;
-	if (x < 0) x = 0;
-	if (y < 0) y = 0;
-	if (x >= scale.GameWidth) x = scale.GameWidth-1;
-	if (y >= scale.GameHeight) y = scale.GameHeight-1;
 }
 
 

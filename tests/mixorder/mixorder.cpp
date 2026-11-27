@@ -14,9 +14,14 @@
 
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
+#include "base64.h"
+#include "ccfile.h"
 #include "crc.h"
 #include "mixfile.h"
 #include "random.h"
@@ -40,7 +45,7 @@ namespace {
 struct Member
 {
 	char const * Name;
-	char const * Contents;
+	std::string Contents;
 };
 
 
@@ -58,7 +63,7 @@ void Write_Mixfile(char const * filename, std::vector<Member> const & members)
 		MixFileClass::SubBlock block;
 		block.CRC = CRCEngine()(name.c_str(), (int)name.size());
 		block.Offset = (int)data.size();
-		block.Size = (int)std::strlen(member.Contents);
+		block.Size = (int)member.Contents.size();
 		blocks.push_back(block);
 		data += member.Contents;
 	}
@@ -83,33 +88,31 @@ std::string Found_In(char const * filename)
 	if (!MixFileClass::Offset(filename, NULL, &mixfile) || mixfile == NULL) {
 		return(std::string());
 	}
-	return(mixfile->Filename);
+	std::string name = std::filesystem::path(mixfile->Filename).filename().string();
+	std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return((char)std::toupper(c)); });
+	return(name);
 }
 
 
 struct MixDirectoryFixture
 {
-	char OriginalDirectory[MAX_PATH];
-	std::string Root;
+	std::filesystem::path OriginalDirectory;
+	std::filesystem::path Root;
 
-	MixDirectoryFixture(void)
+	MixDirectoryFixture() : OriginalDirectory(std::filesystem::current_path())
 	{
-		GetCurrentDirectory(sizeof(OriginalDirectory), OriginalDirectory);
-
-		char temp[MAX_PATH];
-		GetTempPath(sizeof(temp), temp);
-		Root = std::string(temp) + "opents-mixorder-" + std::to_string(GetCurrentProcessId());
-		CreateDirectory(Root.c_str(), NULL);
-		SetCurrentDirectory(Root.c_str());
+		Root = std::filesystem::temp_directory_path() / ("opents-mixorder-" + std::to_string(GetCurrentProcessId()));
+		REQUIRE(std::filesystem::create_directory(Root));
+		std::filesystem::current_path(Root);
 	}
 
-	~MixDirectoryFixture(void)
+	~MixDirectoryFixture()
 	{
-		for (char const * name : { "FIRST.MIX", "SECOND.MIX", "THIRD.MIX" }) {
-			DeleteFile(name);
-		}
-		SetCurrentDirectory(OriginalDirectory);
-		RemoveDirectory(Root.c_str());
+		CDFileClass::Clear_Search_Drives();
+		CDFileClass::Set_Data_Path("");
+		std::error_code error;
+		std::filesystem::current_path(OriginalDirectory, error);
+		std::filesystem::remove_all(Root, error);
 	}
 };
 
@@ -156,4 +159,54 @@ TEST_CASE_FIXTURE(MixDirectoryFixture, "a mixfile moved in the search order supp
 	delete second;
 	delete third;
 	CHECK_MESSAGE(Found_In("SHARED.TXT").empty(), "a deleted archive leaves the search");
+}
+
+
+TEST_CASE_FIXTURE(MixDirectoryFixture, "nested archives use member names with a separate data directory")
+{
+	Write_Mixfile("inner.mix", { { "marker.txt", "nested" } });
+	std::string image;
+	{
+		std::ifstream stream("inner.mix", std::ios::binary);
+		image.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+	}
+	REQUIRE(!image.empty());
+	REQUIRE(std::filesystem::remove("inner.mix"));
+
+	std::filesystem::create_directory("data");
+	Write_Mixfile("data/outer.mix", { { "inner.mix", image } });
+	std::string const data = (Root / "data").string() + "/";
+	CDFileClass::Set_Data_Path(data.c_str());
+	CDFileClass::Add_Search_Drive(data.c_str());
+
+	MixFileClass outer("OUTER.MIX", nullptr);
+	REQUIRE(outer.Is_Valid());
+	MixFileClass inner("INNER.MIX", nullptr);
+	REQUIRE(inner.Is_Valid());
+	REQUIRE(MixFileClass::Cache("INNER.MIX"));
+	CCFileClass member("MARKER.TXT");
+	REQUIRE(member.Open());
+	char contents[6];
+	REQUIRE(member.Read(contents, sizeof(contents)) == sizeof(contents));
+	CHECK(std::string(contents, sizeof(contents)) == "nested");
+}
+
+
+TEST_CASE("Base64 uses the standard bit order regardless of platform")
+{
+	unsigned char const expected[] = { 0x02, 0x28, 0x51, 0xBC };
+	unsigned char decoded[8] = {};
+	char encoded[16] = {};
+	REQUIRE(Base64_Decode("AihR vA==", 9, decoded, sizeof(decoded)) == sizeof(expected));
+	CHECK(std::memcmp(decoded, expected, sizeof(expected)) == 0);
+	REQUIRE(Base64_Encode(expected, sizeof(expected), encoded, sizeof(encoded)) == 8);
+	CHECK(std::string(encoded) == "AihRvA==");
+}
+
+
+TEST_CASE_FIXTURE(MixDirectoryFixture, "a short MIX header stays out of the search")
+{
+	std::ofstream("short.mix", std::ios::binary).write("\x01", 1);
+	MixFileClass archive("short.mix", nullptr);
+	CHECK_FALSE(archive.Is_Valid());
 }

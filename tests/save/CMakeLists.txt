@@ -9,7 +9,14 @@ opents_add_test(SaveTest
     ENGINE
         crc.cpp
         savefile.cpp
-    DEFINITIONS WIN32 _WINDOWS _MBCS NOMINMAX
+    DEFINITIONS NOMINMAX
     LIBRARIES lzo
     DOCTEST
 )
+
+if(OPENTS_POSIX)
+    target_sources(SaveTest PRIVATE "${CMAKE_SOURCE_DIR}/code/platform/posix/wincompat.cpp")
+    target_include_directories(SaveTest PRIVATE "${CMAKE_SOURCE_DIR}/code/platform/posix")
+else()
+    target_compile_definitions(SaveTest PRIVATE WIN32 _WINDOWS _MBCS)
+endif()

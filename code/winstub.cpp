@@ -143,14 +143,16 @@ unsigned int Build_Number(void)
 /// <param name="name">The name of the picture file to load.</param>
 /// <param name="surface">The surface to draw the title screen upon.</param>
 /// <param name="palette">The palette to load the picture's colors into.</param>
-void Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette)
+void Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette, Point2D * size)
 {
 	Surface *load_buffer;
 	CCFileClass file(name);
 	load_buffer = Read_PCX_File (file, palette);
 
+	if (size != nullptr) {
+		*size = load_buffer ? Point2D(load_buffer->Get_Width(), load_buffer->Get_Height()) : Point2D(0, 0);
+	}
 	if (load_buffer) {
-		Point2D point;
 		int x = (surface->Get_Width() - load_buffer->Get_Width()) / 2;
 		int y = (surface->Get_Height() - load_buffer->Get_Height()) / 2;
 		if (palette && load_buffer->Bytes_Per_Pixel() == 1) {

@@ -134,7 +134,11 @@ OptionsClass::OptionsClass(void) :
 	ScreenHeight(-1),
 	ScrollMethod(0),
 	DetailLevel(2),
-	StretchMovies(0),
+#if defined(__APPLE__)
+	StretchMovies(true),
+#else
+	StretchMovies(false),
+#endif
 	Fullscreen(true),
 	WindowWidth(-1),
 	WindowHeight(-1),

@@ -22,7 +22,7 @@
 #include <cstring>
 #include <dirent.h>
 #include <fnmatch.h>
-#include <limits.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -34,7 +34,7 @@ class Find_File_Data_Posix : public Find_File_Data
 		virtual ~Find_File_Data_Posix();
 
 		virtual const char * GetName() const;
-		virtual const char * GetFullName() const { return DirEntry != nullptr ? FullName : nullptr; }
+		virtual const char * GetFullName() const { return DirEntry != nullptr ? FullName.c_str() : nullptr; }
 		virtual unsigned int GetTime() const;
 
 		virtual bool FindFirst(const char * fname);
@@ -44,9 +44,9 @@ class Find_File_Data_Posix : public Find_File_Data
 	private:
 		DIR * Directory;
 		struct dirent * DirEntry;
-		const char * FileFilter;
-		char FullName[PATH_MAX];
-		char DirName[PATH_MAX];
+		std::string FileFilter;
+		std::string FullName;
+		std::string DirName;
 
 		bool FindNextWithFilter();
 };
@@ -72,7 +72,7 @@ unsigned int Find_File_Data_Posix::GetTime() const
 		return 0;
 	}
 	struct stat buf = {0};
-	if (stat(FullName, &buf) != 0) {
+	if (stat(FullName.c_str(), &buf) != 0) {
 		return false;
 	}
 	return buf.st_mtime;
@@ -85,9 +85,8 @@ bool Find_File_Data_Posix::FindNextWithFilter()
 		if (DirEntry == nullptr) {
 			return false;
 		}
-		if (fnmatch(FileFilter, DirEntry->d_name, FNM_PATHNAME | FNM_CASEFOLD) == 0) {
-			strcpy(FullName, DirName);
-			strcat(FullName, DirEntry->d_name);
+		if (fnmatch(FileFilter.c_str(), DirEntry->d_name, FNM_PATHNAME | FNM_CASEFOLD) == 0) {
+			FullName = DirName + DirEntry->d_name;
 			break;
 		}
 	}
@@ -97,15 +96,14 @@ bool Find_File_Data_Posix::FindNextWithFilter()
 bool Find_File_Data_Posix::FindFirst(const char * fname)
 {
 	Close();
-	FullName[0] = '\0';
-	DirName[0] = '\0';
+	FullName.clear();
+	DirName.clear();
 
-	// split directory and file from the path
-	char * fdir = strrchr((char *)fname, '/');
+	char const * fdir = strrchr(fname, '/');
 	if (fdir != nullptr) {
-		strncat(DirName, fname, (fdir - fname + 1));
+		DirName.assign(fname, fdir - fname + 1);
 		FileFilter = fdir + 1;
-		Directory = opendir(DirName);
+		Directory = opendir(DirName.c_str());
 	} else {
 		FileFilter = fname;
 		Directory = opendir(".");
@@ -128,6 +126,7 @@ bool Find_File_Data_Posix::FindNext()
 
 void Find_File_Data_Posix::Close()
 {
+	DirEntry = nullptr;
 	if (Directory != nullptr) {
 		closedir(Directory);
 		Directory = nullptr;

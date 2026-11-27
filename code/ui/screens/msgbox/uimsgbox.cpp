@@ -10,6 +10,9 @@
 #include "ui/screens/msgbox/uimsgbox.h"
 
 #include "ui/rml/rmlview.h"
+#include "ui/uienginehost.h"
+
+#include <sstream>
 
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
@@ -120,4 +123,93 @@ class UIMessageBoxViewClass : public UIRmlViewClass
 std::unique_ptr<UIViewClass> UI_Message_Box_View(UIMessageBoxPresenterClass & presenter)
 {
 	return(std::make_unique<UIMessageBoxViewClass>(presenter));
+}
+
+namespace
+{
+struct FrontierTerritory
+{
+	std::string Name, Owner, State;
+};
+
+class FrontierPresenter final : public UIPresenterClass
+{
+	public:
+		explicit FrontierPresenter(std::string const & briefing)
+		{
+			if (!briefing.starts_with("FRONTIER")) {
+				Status = briefing;
+				return;
+			}
+			std::istringstream lines(briefing);
+			std::string line;
+			std::getline(lines, line);
+			bool history = false;
+			while (std::getline(lines, line)) {
+				if (line.empty()) continue;
+				if (line == "RECENT BATTLES") {
+					history = true;
+				} else if (history) {
+					if (History.size() < 3) History.push_back(line);
+				} else {
+					std::string const separator = " · ";
+					auto const first = line.find(separator);
+					if (first == std::string::npos || Territories.size() >= 3) continue;
+					auto const owner = first + separator.size();
+					auto const second = line.find(separator, owner);
+					Territories.push_back({line.substr(0, first), line.substr(owner, second - owner),
+						second == std::string::npos ? "" : line.substr(second + separator.size())});
+				}
+			}
+			if (Territories.empty()) Status = "No Frontier territory data is available.";
+		}
+
+		void Execute(UIIntent const & intent) override
+		{
+			if (intent.Name == "cancel" || intent.Name == "ok") Result = UI_RESULT_CANCELLED;
+		}
+
+		void Refresh() override {}
+
+		std::string Status;
+		std::vector<FrontierTerritory> Territories;
+		std::vector<std::string> History;
+};
+
+class FrontierView final : public UIRmlViewClass
+{
+	public:
+		explicit FrontierView(FrontierPresenter & presenter) :
+			UIRmlViewClass(presenter, "frontier.rml", "frontier"), Data(presenter)
+		{
+		}
+
+		void Sync() override {}
+
+	protected:
+		bool Bind(Rml::DataModelConstructor & model) override
+		{
+			auto tile = model.RegisterStruct<FrontierTerritory>();
+			if (!tile) return(false);
+			tile.RegisterMember("name", &FrontierTerritory::Name);
+			tile.RegisterMember("owner", &FrontierTerritory::Owner);
+			tile.RegisterMember("state", &FrontierTerritory::State);
+			return(model.RegisterArray<std::vector<FrontierTerritory>>()
+				&& model.RegisterArray<std::vector<std::string>>()
+				&& model.Bind("territories", &Data.Territories)
+				&& model.Bind("history", &Data.History)
+				&& model.Bind("status", &Data.Status));
+		}
+
+	private:
+		FrontierPresenter & Data;
+};
+}
+
+
+void UI_Frontier_Dialog(std::string const & briefing)
+{
+	FrontierPresenter presenter(briefing);
+	FrontierView view(presenter);
+	UI_Run_Modal(view);
 }

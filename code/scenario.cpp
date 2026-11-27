@@ -60,6 +60,7 @@
 #include "always.h"
 
 #include "scenario.h"
+#include "video.h"
 
 #include "_bench.h"
 #include "_deploymentconfig.h"
@@ -168,6 +169,7 @@
 #include "tube.h"
 #include "tutorial.h"
 #include "ui/screens/diplomacy/uidiplomacy.h"
+#include "ui/screens/mapedit/uimapedit.h"
 #include "ui/uishell.h"
 #include "uitooltip.h"
 #include "unit.h"
@@ -720,6 +722,7 @@ bool Read_Scenario(char const * fname)
 		}
 	}
 
+	VideoPresentationScope loading_presentation;
 	Scen->IsRandom = is_seed_file || random_map;
 	DebugString("Scen->IsRandom = %s\n", Scen->IsRandom ? "true" : "false");
 
@@ -745,7 +748,7 @@ bool Read_Scenario(char const * fname)
 			prog_msg = prog_msg_buffer;
 		}
 
-		Progress.Set_Graphic_Data((players > 1) ? "PROGBARM.SHP" : "PROGBAR.SHP", background, prog_msg, prog_bar_pos);
+		Progress.Set_Graphic_Data((players > 1) ? "PROGBARM.SHP" : "PROGBAR.SHP", background, prog_msg, prog_bar_pos, &loading_presentation);
 		Progress.Display_Progress();
 
 		if (PacketTransport != NULL && Ipx.Transport_Mode() == IPXManagerClass::TRANSPORT_DIRECT && Session.Players.Count() > 1) {
@@ -1257,6 +1260,11 @@ void Do_Win(void)
 	}
 
 	Play_Movie(Scen->WinMovie);
+	if (UI_Map_Editor_Resume_Requested()) {
+		GameActive = false;
+		Show_Mouse();
+		return;
+	}
 
 	/*
 	**	If the score presentation should be performed, then do
@@ -1421,6 +1429,11 @@ void Do_Lose(void)
 	}
 
 	Play_Movie(Scen->LoseMovie);
+	if (UI_Map_Editor_Resume_Requested()) {
+		GameActive = false;
+		Show_Mouse();
+		return;
+	}
 
 	/*
 	**	Start same scenario again

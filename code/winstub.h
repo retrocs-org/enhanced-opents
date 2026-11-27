@@ -16,11 +16,12 @@
 #include "win.h"
 
 class Surface;
+class Point2D;
 class PaletteClass;
 
 void Focus_Loss(void);
 void Focus_Restore(void);
 
-void Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette);
+void Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette, Point2D * size = nullptr);
 
 unsigned int Build_Number(void);

@@ -10,4 +10,4 @@
 #pragma once
 
 bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
+bool Main_Options_Dialog(void);

@@ -130,10 +130,25 @@ function(opents_add_test target)
     endif()
 endfunction()
 
+# The script reads the sources directly, so the check needs no compiler and runs in every CI
+# job's ctest step.
+add_test(NAME toolkitheaders
+    COMMAND "${CMAKE_COMMAND}" -DOPENTS_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -P "${CMAKE_SOURCE_DIR}/cmake/CheckToolkitHeaders.cmake"
+)
+
 add_subdirectory(actionids)
+add_subdirectory(gamelaunch)
+add_subdirectory(saveserial)
+add_subdirectory(save)
+add_subdirectory(mixorder)
+if(OPENTS_POSIX)
+    add_subdirectory(datafilelookup)
+    return()
+endif()
+
 add_subdirectory(cpudetect)
 add_subdirectory(gamedirs)
-add_subdirectory(mixorder)
 add_subdirectory(ini)
 add_subdirectory(logstress)
 add_subdirectory(netpacket)
@@ -143,7 +158,6 @@ add_subdirectory(socketudp)
 add_subdirectory(sosparity)
 add_subdirectory(spawner)
 add_subdirectory(spawnhouse)
-add_subdirectory(gamelaunch)
 add_subdirectory(syncrec)
 add_subdirectory(random)
 add_subdirectory(simdefaults)
@@ -175,8 +189,6 @@ add_subdirectory(shapefacing)
 add_subdirectory(animstage)
 add_subdirectory(zbufring)
 add_subdirectory(priorityqueue)
-add_subdirectory(save)
-add_subdirectory(saveserial)
 add_subdirectory(swizzle)
 add_subdirectory(png)
 add_subdirectory(replay)
@@ -192,10 +204,3 @@ add_subdirectory(keyqueue)
 if(OPENTS_DESKTOP_TESTS)
     add_subdirectory(sdlwindow)
 endif()
-
-# The script reads the sources directly, so the check needs no compiler and runs in every CI
-# job's ctest step.
-add_test(NAME toolkitheaders
-    COMMAND "${CMAKE_COMMAND}" -DOPENTS_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-        -P "${CMAKE_SOURCE_DIR}/cmake/CheckToolkitHeaders.cmake"
-)

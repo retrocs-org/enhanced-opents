@@ -1,0 +1,68 @@
+#reveal {
+    width: 508dp;
+    height: 329dp;
+    top: 50%;
+    margin-top: -164dp;
+}
+
+#content {
+    padding: 19dp 28dp 0 28dp;
+}
+
+h1 {
+    font-size: 24dp;
+    margin-bottom: 12dp;
+}
+
+h2 {
+    margin-bottom: 4dp;
+}
+
+#territory-map {
+    display: flex;
+    height: 94dp;
+    padding: 8dp;
+    background: #193025;
+    border: 1dp #667d65;
+}
+
+.territory {
+    flex: 1;
+    text-align: center;
+    padding: 5dp 3dp;
+    border: 1dp #667d65;
+    margin: 0 3dp;
+    color: #d3ded2;
+}
+
+.territory.gdi {
+    color: #f5ce73;
+    border-color: #a08444;
+}
+
+.territory.nod {
+    color: #ff9f93;
+    border-color: #a65b51;
+}
+
+.marker {
+    margin: 3dp auto 7dp auto;
+    width: 9dp;
+    height: 9dp;
+    background: #a2b2a1;
+    transform: rotate(45deg);
+}
+
+.gdi .marker { background: #f5ce73; }
+.nod .marker { background: #ff9f93; }
+
+#frontier-history {
+    margin: 13dp 0 10dp;
+    height: 78dp;
+    overflow: hidden;
+}
+
+button {
+    width: 105dp;
+    margin-top: 8dp;
+}

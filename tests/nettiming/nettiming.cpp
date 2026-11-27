@@ -538,17 +538,16 @@ namespace
 	}
 
 
-	TEST_CASE("each solo game speed has its frame rate, and an unknown one runs unlimited")
+	TEST_CASE("each solo game speed has a bounded frame rate")
 	{
 		using namespace NetTiming;
 
-		// Zero is no limit at all.
-		unsigned int const expected[] = { 0u, 60u, 45u, 30u, 20u, 15u, 10u };
+		unsigned int const expected[] = { 75u, 55u, 40u, 30u, 20u, 15u, 10u };
 		for (int speed = 0; speed < 7; speed++) {
 			CHECK_MESSAGE(Solo_Game_Speed_Frame_Rate(speed) == expected[speed], ("solo speed " + std::to_string(speed) + " frame rate"));
 		}
-		CHECK_MESSAGE(Solo_Game_Speed_Frame_Rate(7) == 0u, "an unknown solo speed runs unlimited");
-		CHECK_MESSAGE(Solo_Game_Speed_Frame_Rate(-1) == 0u, "a negative solo speed runs unlimited");
+		CHECK_MESSAGE(Solo_Game_Speed_Frame_Rate(7) == 75u, "an unknown solo speed uses the fastest rate");
+		CHECK_MESSAGE(Solo_Game_Speed_Frame_Rate(-1) == 75u, "a negative solo speed uses the fastest rate");
 	}
 
 
@@ -556,7 +555,7 @@ namespace
 	{
 		using namespace NetTiming;
 
-		for (unsigned int rate : { 60u, 45u, 30u, 20u, 15u, 12u, 10u, 7u }) {
+		for (unsigned int rate : { 75u, 60u, 55u, 45u, 40u, 30u, 20u, 15u, 12u, 10u, 7u }) {
 			INFO("rate ", rate);
 			FramePacer pacer;
 			Milliseconds total = 0;

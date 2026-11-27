@@ -956,26 +956,26 @@ static void Resize_Tactical_View(bool flag)
 
 	if (flag) {
 
-		Rect hidden(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
-		Rect comp(0, 0, Options.ScreenWidth, Options.ScreenHeight);
-		Rect tile(0, 0, Options.ScreenWidth, Options.ScreenHeight);
-		Rect sidebar(0, 0, _sidebar_width, Options.ScreenHeight);
+		Rect hidden(0, 0, VisibleRect.Width-_sidebar_width, VisibleRect.Height);
+		Rect comp(0, 0, VisibleRect.Width, VisibleRect.Height);
+		Rect tile(0, 0, VisibleRect.Width, VisibleRect.Height);
+		Rect sidebar(0, 0, _sidebar_width, VisibleRect.Height);
 		Allocate_Surfaces(hidden, comp, tile, sidebar);
 
-		Rect view(0, 0, Options.ScreenWidth, Options.ScreenHeight);
+		Rect view(0, 0, VisibleRect.Width, VisibleRect.Height);
 		Map.Set_View_Dimensions(view);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
 	} else {
 
-		Rect hidden(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
-		Rect comp(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
-		Rect tile(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
-		Rect sidebar(0, 0, _sidebar_width, Options.ScreenHeight);
+		Rect hidden(0, 0, VisibleRect.Width-_sidebar_width, VisibleRect.Height);
+		Rect comp(0, 0, VisibleRect.Width-_sidebar_width, VisibleRect.Height);
+		Rect tile(0, 0, VisibleRect.Width-_sidebar_width, VisibleRect.Height);
+		Rect sidebar(0, 0, _sidebar_width, VisibleRect.Height);
 		Allocate_Surfaces(hidden, comp, tile, sidebar);
 
-		Rect view(0, _tab_height, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight-_tab_height);
+		Rect view(0, _tab_height, VisibleRect.Width-_sidebar_width, VisibleRect.Height-_tab_height);
 		Map.Set_View_Dimensions(view);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(2));

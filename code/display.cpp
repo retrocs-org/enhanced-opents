@@ -134,6 +134,7 @@
 #include "session.h"
 #include "smudtype.h"
 #include "sidebar.h"
+#include "video.h"
 #include "suprtype.h"
 #include "surface.h"
 #include "tactical.h"
@@ -257,7 +258,7 @@ void DisplayClass::One_Time(void)
 		rect.X = SidebarClass::SIDE_WIDTH;
 	}
 	rect.Y = 16;
-	rect.Width = rect.Width - SidebarClass::SIDE_WIDTH;
+	rect.Width -= Video_Sidebar_Width();
 	rect.Height = rect.Height - 16;
 	Set_View_Dimensions(rect);
 }

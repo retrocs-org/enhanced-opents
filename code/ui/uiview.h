@@ -11,6 +11,7 @@
 
 class UIPresenterClass;
 class UIShellClass;
+struct WindowEvent;
 
 
 class UIViewClass
@@ -25,6 +26,7 @@ class UIViewClass
 		virtual void Sync(void) = 0;
 		virtual bool Is_Shown(void) const = 0;
 		virtual void Placed(void) {}
+		virtual bool Handle_Pointer_Gesture(WindowEvent const &, int, int) { return(false); }
 
 		virtual float Reveal_Width(void) const { return(0.0f); }
 		virtual void Reveal_To(float width) { (void)width; }

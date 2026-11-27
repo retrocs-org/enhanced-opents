@@ -45,6 +45,7 @@
 #include "always.h"
 
 #include "trigger.h"
+#include "ui/screens/mapedit/uimapedit.h"
 
 #include "ccrand.h"
 #include "crc.h"
@@ -336,11 +337,14 @@ bool TriggerClass::Spring(ObjectClass * object, Cell cell)
 		return(false);
 	}
 
+	bool const playtest = UI_Map_Editor_Resume_Requested();
+	if (playtest) UI_Map_Editor_Log_Trigger(Class->IniName, Class->Full_Name(), Frame);
 	bool done = false;
 	TActionClass * taction = Class->FirstAction;
 	while (taction != NULL) {
 		if (taction->operator()(Class->House, object, this, cell)) {
 			done = true;
+			if (playtest) UI_Map_Editor_Log_Trigger(Class->IniName, Class->Full_Name(), Frame, taction->Action);
 		}
 		taction = taction->Next;
 	}

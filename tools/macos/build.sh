@@ -13,10 +13,11 @@
 #   --notarize PROFILE   Submit the signed app to Apple's notary service with the notarytool
 #                        keychain profile PROFILE, wait for the verdict, and staple the ticket.
 #                        Needs --sign with a Developer ID Application certificate.
-#   --zip                Write build-macos/OpenTS-macOS-<arch>.zip.
-#   --dmg                Write build-macos/OpenTS-macOS-<arch>.dmg (signed, and notarized with
-#                        --notarize).
+#   --zip                Write OpenTS-macOS-<arch>.zip in the output directory.
+#   --dmg                Write OpenTS-macOS-<arch>.dmg in the output directory.
+#                        Signed with --sign and notarized with --notarize.
 #
+# Output defaults to ~/Development/builds/opents-mac. Set OPENTS_MACOS_BUILD_DIR to override it.
 # The identity and profile can also come from OPENTS_SIGN_IDENTITY and OPENTS_NOTARY_PROFILE.
 #
 # Needs the Xcode command line tools (xcode-select --install) and CMake 3.23 or newer.
@@ -37,16 +38,15 @@ while [[ $# -gt 0 ]]; do
 		--notarize)						profile="${2:?--notarize needs a keychain profile}"; shift ;;
 		--zip)							zip=1 ;;
 		--dmg)							dmg=1 ;;
-		-h|--help)						sed -n '5,23p' "$0"; exit 0 ;;
+		-h|--help)						sed -n '5,24p' "$0"; exit 0 ;;
 		*)								echo "Unknown option: $1" >&2; exit 2 ;;
 	esac
 	shift
 done
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-build="$root/build-macos"
+output="${OPENTS_MACOS_BUILD_DIR:-$HOME/Development/builds/opents-mac}"
 arch="$(uname -m)"
-app="$build/bin/OpenTS.app"
 
 fail() {
 	echo "$*" >&2
@@ -76,9 +76,12 @@ if [[ ! -f "$root/thirdparty/SDL/CMakeLists.txt" ]]; then
 fi
 
 generator="Unix Makefiles"
+build="$output/make"
 if command -v ninja >/dev/null 2>&1; then
 	generator="Ninja"
+	build="$output/ninja"
 fi
+app="$build/bin/OpenTS.app"
 
 echo "==> Configuring ($config, $arch, $generator)"
 cmake -S "$root" -B "$build" -G "$generator" \
@@ -116,20 +119,20 @@ if [[ -n "$profile" ]]; then
 fi
 
 if [[ "$zip" == 1 ]]; then
-	archive="$build/OpenTS-macOS-$arch.zip"
+	archive="$output/OpenTS-macOS-$arch.zip"
 	rm -f "$archive"
 	ditto -c -k --sequesterRsrc --keepParent "$app" "$archive"
 	echo "Wrote $archive"
 fi
 
 if [[ "$dmg" == 1 ]]; then
-	image="$build/OpenTS-macOS-$arch.dmg"
+	image="$output/OpenTS-macOS-$arch.dmg"
 	staging="$build/dmg"
 	rm -rf "$staging" "$image"
 	mkdir -p "$staging"
 	ditto "$app" "$staging/OpenTS.app"
 	ln -s /Applications "$staging/Applications"
-	hdiutil create -volname "OpenTS" -srcfolder "$staging" -ov -format UDZO "$image" >/dev/null
+	hdiutil create -volname "OpenTS Enhanced" -srcfolder "$staging" -ov -format UDZO "$image" >/dev/null
 	rm -rf "$staging"
 	if [[ -n "$identity" ]]; then
 		codesign --force --timestamp --sign "$identity" "$image"

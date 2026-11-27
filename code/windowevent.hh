@@ -27,6 +27,7 @@ enum WindowEventType
 	WINDOW_EVENT_RESIZED,
 	WINDOW_EVENT_DISPLAY_CHANGED,
 	WINDOW_EVENT_CLOSE_REQUESTED,
+	WINDOW_EVENT_PINCH,
 };
 
 
@@ -48,6 +49,7 @@ enum WindowKeyModifier
 	WINDOW_MOD_ALT = 0x04,
 	WINDOW_MOD_CAPS = 0x08,
 	WINDOW_MOD_NUM = 0x10,
+	WINDOW_MOD_META = 0x20,
 };
 
 
@@ -66,6 +68,9 @@ struct WindowEvent
 	// Wheel notches; positive is away from the player, or to the right when Horizontal.
 	float Wheel = 0.0f;
 	bool Horizontal = false;
+	bool PreciseScroll = false;
+	float PreciseScrollPixels = 0.0f;
+	float PinchScale = 1.0f;
 
 	// The Windows virtual-key code, which is the engine's identity for a key.
 	int VirtualKey = 0;
@@ -78,6 +83,9 @@ struct WindowEvent
 	bool System = false;
 
 	char32_t Text = 0;
+
+	// A focus gain can be followed by the press that activated the window.
+	bool FocusClickThrough = false;
 
 	int Width = 0;
 	int Height = 0;

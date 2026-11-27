@@ -8,6 +8,10 @@ endif()
 
 project(OpenTS VERSION 0.3.0 LANGUAGES C CXX)
 
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 # The SemVer prerelease label, set apart because project() accepts only numbers. With "beta1",
 # version 1.2.3 reads 1.2.3-beta1. manual/data/releases.yaml must match this and the project
 # version.
@@ -131,8 +135,7 @@ add_subdirectory(thirdparty)
 add_subdirectory(code)
 add_subdirectory(code/language)
 
-# The harnesses are written against the Windows build; the POSIX port leaves them out unless
-# asked for.
+# POSIX builds can opt in to the portable harnesses.
 if(OPENTS_POSIX)
     option(OPENTS_BUILD_TESTS "Build the test harnesses" OFF)
 else()

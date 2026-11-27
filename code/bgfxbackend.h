@@ -35,7 +35,8 @@ void Backend_Shutdown(void);
 bool Backend_Set_Frame_Size(int width, int height);
 void Backend_On_Resize(int drawablewidth, int drawableheight);
 
-bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode);
+struct VideoScaleInfo;
+bool Backend_Present(void const * pixels, int pitch, VideoScaleInfo const & frame, BackendScaleMode mode);
 void Backend_End_Frame(void);
 
 void Backend_Build_Ortho_Projection(float * result, int width, int height);

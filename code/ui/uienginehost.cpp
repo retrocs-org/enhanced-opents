@@ -35,6 +35,7 @@
 #include "voc.h"
 #include "wwmouse.h"
 
+#include <algorithm>
 #include <cstdio>
 
 
@@ -100,14 +101,25 @@ class UIEngineHostClass : public UIShellHostClass
 			return(true);
 		}
 
-		virtual int Art_Magnification(void) const override
+		virtual float Menu_Scale(float base) const override
+		{
+#ifdef __APPLE__
+			if (GameActive && !Video_Get_Scale_Info().MenuPresentation) {
+				constexpr float heights[] = {850.0f, 680.0f, 530.0f};
+				UIFrameRect const frame = Frame();
+				float const scale = std::min(frame.Width / 640.0f, frame.Height / heights[Video_Menu_UI_Size()]);
+				return(std::max(std::min(1.0f, base), scale));
+			}
+#endif
+			return(base);
+		}
+
+		virtual int Art_Magnification(float ratio) const override
 		{
 			if (Options.ScaleMode != VIDEO_SCALE_PIXELART) {
 				return(1);
 			}
 
-			UIFrameRect frame = Frame();
-			float ratio = frame.ScaleX < frame.ScaleY ? frame.ScaleX : frame.ScaleY;
 			if (ratio <= 1.0f) {
 				return(1);
 			}

@@ -103,3 +103,10 @@ void Main_Window_Error_Box(char const * title, char const * text);
 
 // Returns false for no or Escape, and true for yes or when the box cannot be shown.
 bool Main_Window_Confirm_Box(char const * title, char const * text, char const * yes, char const * no);
+
+std::string Main_Window_Frontier_Briefing();
+
+struct MainChildProcess;
+MainChildProcess * Main_Start_Game_Process(char const * const * arguments);
+bool Main_Poll_Game_Process(MainChildProcess * child, int & exitcode);
+void Main_Stop_Game_Process(MainChildProcess * child);

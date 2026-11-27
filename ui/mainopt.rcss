@@ -35,5 +35,5 @@ button
 
 #mainmenu
 {
-	margin-top: 48dp;
+	margin-top: 10dp;
 }

@@ -4,11 +4,13 @@
 
 # Directories built as their own project.
 exclude = ["language", "vqalib"]
+posix_only = ["platform/posix"]
 
 # Sources under these directories take the layer named here unless a files list says otherwise.
 [directories]
 audio = "audio"
 launch = "core"
+"platform/posix" = "platform"
 proto = "core"
 replay = "core"
 sdl = "platform"

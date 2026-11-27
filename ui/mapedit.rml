@@ -1,0 +1,417 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later
+     Copyright 2026 OpenTS contributors -->
+<rml>
+<head>
+	<title>Map Editor</title>
+	<link type="text/template" href="dialog.rml"/>
+	<link type="text/rcss" href="mapedit.rcss"/>
+</head>
+<body template="dialog" data-model="mapedit" reveal="none">
+	<div id="commandbar" data-class-obscured="confirmdiscard || playtestissues.size > 0 || balanceopen || testsetup || playtestlogopen">
+		<span id="wordmark">Map Editor<span data-if="haschanges"> *</span></span>
+		<div class="commands" data-if="loaded || setup || filepanel != ''">
+			<button data-class-selected="filepanel == 'open'" data-event-click="queue('open-panel')">Open</button>
+			<button data-event-click="queue('new')">New</button>
+			<button data-event-click="queue('sample')">Sample</button>
+			<button data-event-click="queue('mission-sample')">Mission Sample</button>
+			<button data-if="loaded" data-event-click="queue('save')">Save</button>
+			<button data-if="loaded" data-event-click="queue('save-as')">Save As</button>
+			<button data-class-disabled="!loaded" data-class-selected="filepanel == 'export'" data-event-click="queue('export-panel')">Export</button>
+		</div>
+		<div class="commands" data-if="loaded">
+			<button data-class-disabled="!canundo" data-event-click="queue('undo')">Undo</button>
+			<button data-class-disabled="!canredo" data-event-click="queue('redo')">Redo</button>
+		</div>
+		<div id="run-commands">
+			<button data-if="loaded &amp;&amp; !setup &amp;&amp; !scripts &amp;&amp; filepanel == ''" data-event-click="queue('scripts')">Scripts</button>
+			<button data-if="loaded &amp;&amp; !setup &amp;&amp; !scripts &amp;&amp; filepanel == ''" data-event-click="queue('balance')">Balance</button>
+			<button data-if="loaded &amp;&amp; !setup &amp;&amp; !scripts &amp;&amp; filepanel == ''" data-event-click="queue('validate')">Validate</button>
+			<button data-if="playtestlog.size &gt; 0" data-event-click="queue('playtest-log')">Playtest Log</button>
+			<button class="primary" data-if="loaded &amp;&amp; !setup &amp;&amp; !scripts &amp;&amp; filepanel == ''" data-event-click="queue('test')">Test Play</button>
+			<button data-event-click="queue('cancel')">{{setup || scripts || filepanel != '' ? 'Back' : 'Exit'}}</button>
+		</div>
+	</div>
+	<div class="file-panel" data-if="filepanel == 'open' &amp;&amp; !confirmdiscard">
+		<label for="path">Open a .map or .mpr file</label>
+		<input type="text" id="path" data-value="path"/>
+		<button class="primary" data-event-click="queue('open')">Open Map</button>
+	</div>
+	<div class="file-panel" data-if="(filepanel == 'export' || filepanel == 'save-as') &amp;&amp; !confirmdiscard">
+		<label for="destination">Save a new .map or .mpr file</label>
+		<input id="destination" type="text" data-value="destination"/>
+		<button class="primary" data-if="filepanel == 'export'" data-event-click="queue('export')">Export Copy</button>
+		<button class="primary" data-if="filepanel == 'save-as'" data-event-click="queue('write-as')">Save As</button>
+	</div>
+	<div class="file-panel" data-if="confirmdiscard">
+		<h1>Discard unsaved changes?</h1>
+		<div class="welcome-actions">
+			<button class="primary" data-event-click="queue('keep-editing')">Keep Editing</button>
+			<button data-event-click="queue('discard')">Discard Changes</button>
+		</div>
+	</div>
+	<div id="playtest-check" class="file-panel" data-if="playtestissues.size > 0">
+		<h1>Map Validation</h1>
+		<div class="playtest-issues">
+			<div data-for="issue : playtestissues">
+				<button data-if="issue.slot >= 0" data-event-click="queue('fix-start', issue.slot)">{{issue.blocking ? 'Blocker · ' : 'Warning · '}}{{issue.text}}</button>
+				<button data-if="issue.slot == -1" data-event-click="queue('inspect-issue', it_index)">{{issue.blocking ? 'Blocker · ' : 'Warning · '}}{{issue.text}}</button>
+			</div>
+		</div>
+		<button data-event-click="queue('cancel')">Back to Map</button>
+	</div>
+	<div class="file-panel" data-if="playtestlogopen">
+		<h1>Playtest Log</h1>
+		<div class="playtest-issues">
+			<button data-for="row : playtestlog" data-event-click="queue('log-record', it_index)">{{row.label}}</button>
+		</div>
+		<button data-event-click="queue('cancel')">Back</button>
+	</div>
+	<div class="file-panel" data-if="testsetup">
+		<h1>Test Play</h1>
+		<label class="check"><input type="checkbox" data-value="scriptedtest"/>Scripted mission</label>
+		<div class="editor-fields" data-if="!scriptedtest">
+			<label for="test-slot">Player start</label>
+			<select id="test-slot" data-value="testslot">
+				<option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option>
+				<option value="4">P5</option><option value="5">P6</option><option value="6">P7</option><option value="7">P8</option>
+			</select>
+			<label for="test-opponents">AI opponents (1–7)</label>
+			<input type="text" id="test-opponents" data-value="testopponents"/>
+		</div>
+		<button class="primary" data-event-click="queue('launch-test')">Launch</button>
+		<button data-event-click="queue('cancel')">Back</button>
+	</div>
+	<div class="file-panel" data-if="balanceopen">
+		<h1>Map Balance</h1>
+		<div class="balance-summary">{{balancetext}}</div>
+		<button data-event-click="queue('cancel')">Back to Map</button>
+	</div>
+	<div id="welcome" data-if="!loaded &amp;&amp; !setup &amp;&amp; filepanel == ''">
+		<h1>Open or create a map</h1>
+		<div class="welcome-actions">
+			<button data-event-click="queue('open-panel')">Open Map</button>
+			<button class="primary" data-event-click="queue('new')">New Map</button>
+			<button data-event-click="queue('sample')">Load Sample</button>
+			<button data-event-click="queue('mission-sample')">Mission Sample</button>
+		</div>
+		<button id="recover-draft" data-if="recoveryavailable" data-event-click="queue('recover')">Recover Draft</button>
+	</div>
+	<div id="setup" class="file-panel" data-if="setup &amp;&amp; !confirmdiscard">
+		<h1>New map</h1>
+		<label for="mapname">Map name</label>
+		<input id="mapname" type="text" maxlength="48" data-value="mapname"/>
+		<label for="mapwidth">Width</label>
+		<input id="mapwidth" type="text" maxlength="3" data-value="mapwidth"/>
+		<label for="mapheight">Height</label>
+		<input id="mapheight" type="text" maxlength="3" data-value="mapheight"/>
+		<label class="check"><input type="checkbox" data-attrif-checked="snow" data-event-click="queue('snow')"/>Snow theater</label>
+		<button data-event-click="queue('blank')">Create Map</button>
+	</div>
+	<div id="workspace" data-class-hidden="!loaded || setup || scripts || filepanel != '' || confirmdiscard || playtestissues.size > 0 || balanceopen || testsetup || playtestlogopen">
+		<surface id="canvas"/>
+		<surface id="asset-ghost"/>
+		<div id="brush-cursor"></div>
+		<div id="tools">
+			<div class="dock-heading"><span>Overview</span><span class="muted">{{zoomlevel}}x</span></div>
+			<surface id="minimap"/>
+			<div id="view-controls">
+				<button data-class-selected="grid" data-event-click="queue('grid')">Grid</button>
+				<button aria-label="Zoom out" data-event-click="queue('zoom', -1)">-</button>
+				<button aria-label="Zoom in" data-event-click="queue('zoom', 1)">+</button>
+				<button aria-label="Fit entire map" data-event-click="queue('fit')">Fit</button>
+			</div>
+			<div id="tooltabs">
+				<button data-class-selected="tooltab == 'tiles'" data-event-click="queue('tiles')">Tiles</button>
+				<button data-class-selected="tooltab == 'scenery'" data-event-click="queue('scenery')">Objects</button>
+				<button data-class-selected="tooltab == 'waypoints'" data-event-click="queue('waypoints')">Points</button>
+			</div>
+			<div class="editor-tools">
+				<button data-class-selected="tooltab == 'actors'" data-event-click="queue('actors')">Units</button>
+				<button data-class-selected="tooltab == 'lighting'" data-event-click="queue('lighting')">Lighting</button>
+				<button data-class-selected="tooltab == 'tunnels'" data-event-click="queue('tunnels')">Tunnels</button>
+			</div>
+			<div class="editor-tools">
+				<button data-class-selected="tooltab == 'overlays'" data-event-click="queue('overlays')">Overlays</button>
+				<button data-class-selected="tooltab == 'regions'" data-event-click="queue('regions')">Regions</button>
+				<button data-class-selected="tooltab == 'houses'" data-event-click="queue('houses')">Houses</button>
+				<button data-class-selected="tooltab == 'bounds'" data-event-click="queue('bounds')">Bounds</button>
+			</div>
+			<div data-if="tooltab == 'overlays'">
+				<div class="editor-tools">
+					<button data-class-selected="overlaybrush == 0" data-event-click="queue('overlay-brush', 0)">Green</button>
+					<button data-class-selected="overlaybrush == 1" data-event-click="queue('overlay-brush', 1)">Blue</button>
+					<button data-class-selected="overlaybrush == 2" data-event-click="queue('overlay-brush', 2)">Wall</button>
+					<button data-class-selected="overlaybrush == 3" data-event-click="queue('overlay-brush', 3)">Erase</button>
+				</div>
+				<div class="editor-fields" data-if="overlaybrush &lt; 2">
+					<label for="overlay-density">Tiberium stage (0–11)</label><input id="overlay-density" type="text" maxlength="2" data-value="overlaydensity"/>
+				</div>
+				<div class="asset-pages">
+					<button aria-label="Smaller brush" data-event-click="queue('brush-size', -1)">−</button>
+					<span>Brush {{brushsize}} × {{brushsize}}</span>
+					<button aria-label="Larger brush" data-event-click="queue('brush-size', 1)">+</button>
+				</div>
+				<p>Click or drag to paint overlays.</p>
+			</div>
+			<div data-if="tooltab == 'regions'">
+				<div class="editor-tools">
+					<button data-class-selected="!regionpaste" data-event-click="queue('select-region')">Select Region</button>
+					<button data-if="clipboardavailable" data-class-selected="regionpaste" data-event-click="queue('use-clipboard')">Place Copy</button>
+				</div>
+				<div data-if="!regionpaste">
+					<label class="check"><input type="checkbox" data-value="copyterrain"/>Terrain</label>
+					<label class="check"><input type="checkbox" data-value="copyoverlays"/>Overlays</label>
+					<label class="check"><input type="checkbox" data-value="copyobjects"/>Objects</label>
+					<button data-event-click="queue('copy-region')">Copy Region</button>
+					<p>Drag across the region or click two opposite corners, then copy.</p>
+				</div>
+				<div data-if="regionpaste">
+					<div class="editor-fields"><label for="paste-elevation">Elevation offset</label>
+						<input id="paste-elevation" type="text" maxlength="3" data-value="pasteelevation"/>
+					</div>
+					<button data-event-click="queue('paste-region')">Paste Here</button>
+					<button data-if="groupreferences != ''" data-event-click="queue('move-region')">Move Objects Here</button>
+					<p>Click the destination anchor to preview the pasted area.</p>
+				</div>
+				<div class="editor-fields">
+					<label>Object group file <input type="text" data-value="grouppath"/></label>
+					<button data-if="groupreferences != ''" data-event-click="queue('save-group')">Save Group</button>
+					<button data-event-click="queue('open-group')">Open Group</button>
+					<p data-if="groupreferences != ''">{{groupreferences}}</p>
+				</div>
+			</div>
+			<div data-if="tooltab == 'houses'">
+				<div class="editor-fields"><label for="scenario-house">House</label>
+					<select id="scenario-house" data-value="housename"><option data-for="house : housechoices" data-attr-value="house">{{house}}</option></select>
+					<button data-event-click="queue('load-house')">Load Settings</button>
+					<label data-for="field : housefields">{{field.label}} <input type="text" maxlength="96" data-value="field.value"/></label>
+				</div>
+				<button data-event-click="queue('apply-house')">Apply House Settings</button>
+			</div>
+			<div data-if="tooltab == 'bounds'">
+				<div class="editor-fields">
+					<label for="boundswidth">Map width</label><input id="boundswidth" type="text" maxlength="3" data-value="boundswidth"/>
+					<label for="boundsheight">Map height</label><input id="boundsheight" type="text" maxlength="3" data-value="boundsheight"/>
+					<label for="boundsx">Playable left</label><input id="boundsx" type="text" maxlength="3" data-value="boundsx"/>
+					<label for="boundsy">Playable top</label><input id="boundsy" type="text" maxlength="3" data-value="boundsy"/>
+					<label for="boundslw">Playable width</label><input id="boundslw" type="text" maxlength="3" data-value="boundslw"/>
+					<label for="boundslh">Playable height</label><input id="boundslh" type="text" maxlength="3" data-value="boundslh"/>
+				</div>
+				<div class="editor-tools">
+					<button data-event-click="queue('preview-bounds')">Preview</button>
+					<button data-event-click="queue('apply-bounds')">Apply</button>
+				</div>
+			</div>
+			<div class="editor-tools">
+				<button data-class-selected="tooltab == 'cell-tags'" data-event-click="queue('cell-tags')">Cell Tags</button>
+			</div>
+			<div data-if="tooltab == 'cell-tags'">
+				<div class="editor-fields">
+					<label for="cell-tag">Trigger tag</label>
+					<select id="cell-tag" data-value="celltag"><option data-for="tag : tagchoices" data-attr-value="tag.id">{{tag.label}}</option></select>
+				</div>
+				<div class="editor-tools">
+					<button data-class-selected="tagerase" data-event-click="queue('tag-erase')">Erase</button>
+					<button data-class-selected="showtags" data-event-click="queue('tag-layer')">Markers</button>
+				</div>
+				<div class="editor-tools">
+					<button data-class-selected="taginspect" data-event-click="queue('tag-inspect')">Inspect</button>
+					<button data-event-click="queue('tag-trigger')">Open Trigger</button>
+				</div>
+				<p>Paint tags by clicking or dragging. In Inspect mode, click a tagged cell to open its trigger.</p>
+			</div>
+			<div data-if="tooltab == 'actors'">
+				<div class="editor-tools">
+					<button data-class-selected="actorcategory == 0" data-event-click="queue('actor-category', 0)">Vehicles</button>
+					<button data-class-selected="actorcategory == 1" data-event-click="queue('actor-category', 1)">Structures</button>
+				</div>
+				<div class="editor-tools">
+					<button data-class-selected="actorcategory == 2" data-event-click="queue('actor-category', 2)">Infantry</button>
+					<button data-class-selected="actorcategory == 3" data-event-click="queue('actor-category', 3)">Aircraft</button>
+				</div>
+				<div class="editor-tools">
+					<button data-class-selected="!actorinspect" data-event-click="queue('actor-mode', 0)">Place</button>
+					<button data-class-selected="actorinspect" data-event-click="queue('actor-mode', 1)">Select</button>
+				</div>
+				<div class="editor-fields" data-if="actorcategory == 2">
+					<label for="actor-spot">Infantry subcell</label>
+					<select id="actor-spot" data-value="actorspot"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+					<p>{{actorspotstatus}}</p>
+				</div>
+				<div class="editor-fields" data-if="!actorinspect || actorkey != ''">
+					<label for="actor-type">Type ID</label><select id="actor-type" data-value="actortype"><option data-for="type : actortypes" data-attr-value="type">{{type}}</option></select>
+					<label for="actor-owner">House</label><select id="actor-owner" data-value="actorowner"><option data-for="house : actorhouses" data-attr-value="house">{{house}}</option></select>
+					<label for="actor-health">Health (1–256)</label><input id="actor-health" type="text" maxlength="3" data-value="actorhealth"/>
+					<label for="actor-facing">Facing (0–255)</label><input id="actor-facing" type="text" maxlength="3" data-value="actorfacing"/>
+					<label for="actor-tag">Trigger tag</label><input id="actor-tag" type="text" maxlength="31" data-value="actortag"/>
+				</div>
+				<div class="editor-tools" data-if="actorinspect &amp;&amp; actorkey != ''">
+					<button data-event-click="queue('apply-actor')">Apply</button>
+					<button data-event-click="queue('remove-actor')">Remove</button>
+				</div>
+				<p data-if="!actorinspect">Click a cell to place the object.</p>
+				<p data-if="actorinspect &amp;&amp; actorkey == ''">Click its anchor cell to select. Drag to move or hold Shift while dragging to duplicate.</p>
+			</div>
+			<div data-if="tooltab == 'lighting'">
+				<div class="editor-tools">
+					<button data-class-selected="!ionlighting" data-event-click="queue('ion-lighting', 0)">Normal</button>
+					<button data-class-selected="ionlighting" data-event-click="queue('ion-lighting', 1)">Ion Storm</button>
+				</div>
+				<div class="editor-fields">
+					<label data-for="light : lights">{{light.label}} <input type="text" maxlength="14" data-value="light.value"/></label>
+				</div>
+				<button data-event-click="queue('apply-lighting')">Apply and Preview</button>
+			</div>
+			<div data-if="tooltab == 'tunnels'">
+				<div class="editor-tools">
+					<button data-event-click="queue('new-tunnel')">New</button>
+					<button data-event-click="queue('trim-tunnel')">Trim</button>
+					<button data-event-click="queue('reverse-tunnel')">Reverse</button>
+				</div>
+				<div class="editor-tools">
+					<button data-event-click="queue('apply-tunnel')">Apply</button>
+					<button data-if="tunnelkey != ''" data-event-click="queue('remove-tunnel')">Remove</button>
+				</div>
+				<p>Click an existing endpoint to select its route, or click cells to draw a new route.</p>
+			</div>
+			<div class="editor-tools" data-if="tooltab == 'tiles'">
+				<button data-class-selected="autotransition" data-event-click="queue('auto-transition')">Auto Borders</button>
+				<button data-class-selected="waterbrush" data-event-click="queue('water-brush')">Water</button>
+				<button data-class-selected="autoshore" data-event-click="queue('auto-shore')">Shores</button>
+			</div>
+			<div class="asset-pages" data-if="tooltab == 'scenery'">
+				<button data-class-selected="!inspectscenery" data-event-click="queue('scenery-mode', 0)">Place</button>
+				<button data-class-selected="inspectscenery" data-event-click="queue('scenery-mode', 1)">Select</button>
+			</div>
+			<div data-if="tooltab == 'scenery' &amp;&amp; inspectscenery">
+				<div data-if="objectname != ''">
+					<p>{{objectname}}</p>
+					<button data-class-selected="movingobject" data-event-click="queue('move-object')">{{movingobject ? 'Cancel Move' : 'Move'}}</button>
+					<button data-event-click="queue('remove-object')">Remove</button>
+				</div>
+				<p data-if="objectname == ''">Click a scenery object to select it.</p>
+			</div>
+			<div id="asset-browser" data-if="tooltab == 'tiles' || (tooltab == 'scenery' &amp;&amp; !inspectscenery)">
+				<input id="asset-search" type="text" aria-label="Search assets" placeholder="Search assets" maxlength="64" data-value="assetsearch"/>
+				<select aria-label="Asset category" data-value="assetcategory">
+					<option data-for="category : assetcategories" data-attr-value="category">{{category == '' ? 'All categories' : category}}</option>
+				</select>
+				<div class="asset-rows">
+					<button class="asset" data-for="asset : assetrows" data-class-selected="selectedasset == asset.index" data-event-click="queue('asset', asset.index)">
+						<surface class="asset-image" data-attr-id="'asset-' + asset.index"/>
+						<span>{{asset.name}}</span><span class="asset-file">{{asset.file}}</span>
+					</button>
+				</div>
+				<p data-if="assetrows.size == 0">No matching assets.</p>
+				<div class="asset-pages">
+					<button aria-label="Previous page" data-class-disabled="assetpage == 0" data-event-click="queue('asset-page', -1)">‹</button>
+					<span>{{assetpage + 1}} / {{assetlast + 1}}</span>
+					<button aria-label="Next page" data-class-disabled="assetpage == assetlast" data-event-click="queue('asset-page', 1)">›</button>
+				</div>
+				<div class="asset-pages" data-if="singlebrush">
+					<button aria-label="Smaller brush" data-event-click="queue('brush-size', -1)">−</button>
+					<span>Brush {{brushsize}} × {{brushsize}}</span>
+					<button aria-label="Larger brush" data-event-click="queue('brush-size', 1)">+</button>
+				</div>
+			</div>
+			<div class="player-starts" data-if="!tilemode" aria-label="Player starts">
+				<button class="start-1" aria-label="Player 1 start" data-class-selected="selected == 0" data-event-click="queue('player-start', 0)">P1</button>
+				<button class="start-2" aria-label="Player 2 start" data-class-selected="selected == 1" data-event-click="queue('player-start', 1)">P2</button>
+				<button class="start-3" aria-label="Player 3 start" data-class-selected="selected == 2" data-event-click="queue('player-start', 2)">P3</button>
+				<button class="start-4" aria-label="Player 4 start" data-class-selected="selected == 3" data-event-click="queue('player-start', 3)">P4</button>
+				<button class="start-5" aria-label="Player 5 start" data-class-selected="selected == 4" data-event-click="queue('player-start', 4)">P5</button>
+				<button class="start-6" aria-label="Player 6 start" data-class-selected="selected == 5" data-event-click="queue('player-start', 5)">P6</button>
+				<button class="start-7" aria-label="Player 7 start" data-class-selected="selected == 6" data-event-click="queue('player-start', 6)">P7</button>
+				<button class="start-8" aria-label="Player 8 start" data-class-selected="selected == 7" data-event-click="queue('player-start', 7)">P8</button>
+			</div>
+			<div id="waypoints" class="list" data-if="!tilemode"><div class="rows">
+				<div class="item" data-for="row : rows" data-class-selected="row.slot == selected" data-event-click="queue('select', it_index)">{{row.slot &lt; 8 ? 'P' + (row.slot + 1) : 'Point ' + row.slot}} · {{row.x}}, {{row.y}}</div>
+			</div></div>
+			<div class="coordinates" data-if="!tilemode || tooltab == 'tiles' || (tooltab == 'scenery' &amp;&amp; !inspectscenery)">
+				<label for="slot" data-if="!tilemode">ID</label><input type="text" id="slot" data-if="!tilemode" maxlength="3" data-value="slot"/>
+				<label for="x">X</label><input type="text" id="x" maxlength="3" data-value="x"/>
+				<label for="y">Y</label><input type="text" id="y" maxlength="3" data-value="y"/>
+			</div>
+			<button id="paint" data-if="tooltab == 'tiles' || (tooltab == 'scenery' &amp;&amp; !inspectscenery)" data-event-click="queue('paint')">{{tooltab == 'scenery' ? 'Place' : 'Paint'}}</button>
+			<button id="set" data-if="!tilemode" data-event-click="queue('set')">Set</button>
+			<button id="clear" data-if="!tilemode" data-event-click="queue('clear')">Clear</button>
+			<div id="effects" data-if="!tilemode">
+				<label for="delay">Delay (seconds)</label>
+				<input id="delay" type="text" maxlength="4" data-value="effectdelay"/>
+				<button data-event-click="queue('lightning')">Add Lightning</button>
+			</div>
+			<p id="hint"><span data-if="tooltab == 'tiles'">Click to stamp. Drag to paint. The default brush clears ground.</span><span data-if="tooltab == 'scenery' &amp;&amp; !inspectscenery">Choose scenery, then click the map to place it.</span><span data-if="!tilemode">Choose P1–P8 and click the map to set a player start. Use ID for other waypoints.</span></p>
+		</div>
+	</div>
+	<div id="scripts" data-if="scripts">
+		<button data-event-click="queue('visual-script')">{{visualscript ? 'Raw Records' : 'Visual Builder'}}</button>
+		<button data-event-click="queue('trigger-inspector')">{{triggerinspector ? 'Raw Records' : 'Trigger Inspector'}}</button>
+		<div id="trigger-inspector" class="editor-fields" data-if="triggerinspector">
+			<div class="trigger-list">
+				<label>Find trigger <input type="text" data-value="triggersearch" data-event-change="queue('trigger-search')"/></label>
+				<button data-event-click="queue('trigger-search')">Search</button>
+				<button data-for="row : triggerchoices" data-class-selected="row.id == inspectedtrigger" data-event-click="queue('trigger-select', it_index)">{{row.label}}</button>
+			</div>
+			<div class="trigger-detail" data-if="inspectedtrigger != ''">
+				<p>{{inspectedtrigger}} {{triggerlinks}}</p>
+				<h2>Events</h2>
+				<button data-for="row : triggerevents" data-event-click="queue('edit-event', it_index)">{{row.label}}</button>
+				<h2>Actions</h2>
+				<button data-for="row : triggeractions" data-event-click="queue('edit-action', it_index)">{{row.label}}</button>
+				<div data-if="selectedstep &gt;= 0">
+					<label>Type ID <input type="text" data-value="steptype"/></label>
+					<label>Parameter code <input type="text" data-value="stepcode"/></label>
+					<label>Value or record ID <input type="text" data-value="stepvalue"/></label>
+					<label data-if="selectedstepaction">Waypoint name <input type="text" data-value="stepwaypoint"/></label>
+					<button class="primary" data-event-click="queue('step-apply')">Apply Step</button>
+					<button data-event-click="queue('step-up')">Move Up</button>
+					<button data-event-click="queue('step-down')">Move Down</button>
+				</div>
+			</div>
+		</div>
+		<div id="visual-builder" class="editor-fields" data-if="visualscript">
+			<label>Record type <select data-value="visualkind"><option value="trigger">Trigger</option><option value="team">Team</option></select></label>
+			<label>Name <input type="text" data-value="visualname"/></label>
+			<label>House <input type="text" data-value="visualhouse"/></label>
+			<label data-if="visualkind == 'trigger'">Event <select data-value="visualevent"><option value="time">Elapsed time</option><option value="any">Any object event</option></select></label>
+			<label data-if="visualkind == 'trigger' &amp;&amp; visualevent == 'time'">Delay in seconds <input type="text" data-value="visualdelay"/></label>
+			<label data-if="visualkind == 'trigger'">Action <select data-value="visualaction">
+				<option value="lightning">Lightning strike</option><option value="team">Create team</option>
+				<option value="reinforce">Reinforce team</option><option value="win">Win mission</option><option value="lose">Lose mission</option>
+			</select></label>
+			<label data-if="visualkind == 'team' || visualaction == 'team' || visualaction == 'reinforce'">Team ID <input type="text" data-value="visualteam"/></label>
+			<p data-if="visualkind == 'team'">Leave Team ID blank to create a new team.</p>
+			<label data-if="visualkind == 'team'">Task Force ID <input type="text" data-value="visualforce"/></label>
+			<label data-if="visualkind == 'team'">Script ID <input type="text" data-value="visualteamscript"/></label>
+			<label data-if="visualkind == 'team' || visualaction == 'lightning'">Waypoint ID <input type="text" data-value="visualwaypoint"/></label>
+			<button data-if="visualkind == 'team' || visualaction == 'lightning'" data-event-click="queue('visual-point')">Pick Waypoint on Map</button>
+			<button class="primary" data-event-click="queue('visual-apply')">{{visualkind == 'team' ? 'Save Team' : 'Create Trigger'}}</button>
+		</div>
+		<div id="script-tabs" data-if="!visualscript &amp;&amp; !triggerinspector">
+			<button data-class-selected="scriptindex == 0" data-event-click="queue('script-section', 0)">Triggers</button>
+			<button data-class-selected="scriptindex == 1" data-event-click="queue('script-section', 1)">Events</button>
+			<button data-class-selected="scriptindex == 2" data-event-click="queue('script-section', 2)">Actions</button>
+			<button data-class-selected="scriptindex == 3" data-event-click="queue('script-section', 3)">Tags</button>
+			<button data-class-selected="scriptindex == 4" data-event-click="queue('script-section', 4)">CellTags</button>
+			<button data-class-selected="scriptindex == 5" data-event-click="queue('script-section', 5)">Teams</button>
+			<button data-class-selected="scriptindex == 6" data-event-click="queue('script-section', 6)">Forces</button>
+			<button data-class-selected="scriptindex == 7" data-event-click="queue('script-section', 7)">Scripts</button>
+			<button data-class-selected="scriptindex == 8" data-event-click="queue('script-section', 8)">Tutorial</button>
+			<button data-class-selected="scriptindex == 9" data-event-click="queue('script-section', 9)">Lighting</button>
+			<button data-class-selected="scriptindex == 10" data-event-click="queue('script-section', 10)">Terrain</button>
+			<button data-class-selected="scriptindex == 11" data-event-click="queue('script-section', 11)">Structures</button>
+			<button data-class-selected="scriptindex == 12" data-event-click="queue('script-section', 12)">Units</button>
+			<button data-class-selected="scriptindex == 13" data-event-click="queue('script-section', 13)">Infantry</button>
+			<button data-class-selected="scriptindex == 14" data-event-click="queue('script-section', 14)">Aircraft</button>
+			<button data-class-selected="scriptindex == 15" data-event-click="queue('script-section', 15)">Tubes</button>
+		</div>
+		<textarea data-if="!visualscript &amp;&amp; !triggerinspector" id="script-records" aria-label="Scenario INI records" data-value="scripttext"></textarea>
+		<button data-if="!visualscript &amp;&amp; !triggerinspector" id="apply-script" data-event-click="queue('apply-script')">Apply Section</button>
+	</div>
+	<div id="statusbar">
+		<span id="status">{{status}}</span>
+		<span id="cursor-cell" data-if="cursorcell != ''">Cell {{cursorcell}}</span>
+		<span id="map-info" data-if="loaded">{{maptitle}} / {{mapdetails}}</span>
+	</div>
+</body>
+</rml>

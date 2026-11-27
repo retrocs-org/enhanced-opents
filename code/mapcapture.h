@@ -17,6 +17,7 @@
 namespace MapCapture
 {
 	void Request_Map(char const * name);
+	void Request_Editor_View();
 	void Request_Output(char const * path);
 	void Request_Description(char const * path);
 	std::string Output_Path(void);

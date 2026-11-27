@@ -11,6 +11,7 @@
 
 #include "ui/rml/rmlimage.h"
 
+#include <span>
 #include <vector>
 
 
@@ -29,3 +30,6 @@ bool UI_Read_File(char const * path, std::vector<unsigned char> & bytes);
 bool UI_Read_Game_File(char const * name, std::vector<unsigned char> & bytes);
 
 bool UI_Load_Indexed_Image(char const * name, UIImageIndexed & image);
+
+bool UI_Decode_Raster(char const * name, std::span<unsigned char const> encoded, std::vector<unsigned char> & rgba,
+	int & width, int & height, bool premultiply);

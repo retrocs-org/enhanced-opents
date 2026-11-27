@@ -17,12 +17,12 @@
 #include "globals.h"
 #include "init.h"
 #include "options.h"
-#include "surface.h"
 #include "ui/screens/campaign/uicampaign.h"
 #include "ui/uienginehost.h"
 #include "ui/uishell.h"
 #include "ui/uiview.h"
 #include "vector.h"
+#include "video.h"
 
 #include <utility>
 
@@ -50,7 +50,7 @@ void UI_Campaign_State(UICampaignState & state)
 	state.Difficulty = Options.Difficulty;
 
 	if (HiddenSurface != NULL) {
-		state.Top = (HiddenSurface->Get_Height() - 400) / 2 + 147;
+		state.Top = (Video_Get_Scale_Info().GameHeight - 400) / 2 + 147;
 	}
 }
 

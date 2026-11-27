@@ -282,7 +282,7 @@ int CCFileClass::Size(void)
 	*/
 	if (!BASECLASS::Is_Available()) {
 		int length = 0;
-		MFCD::Offset(File_Name(), NULL, NULL, NULL, &length);
+		MFCD::Offset(Requested_Name(), NULL, NULL, NULL, &length);
 		return(length);
 	}
 
@@ -315,7 +315,7 @@ bool CCFileClass::Is_Available(int )
 	/*
 	**	A file that is part of a mixfile is also presumed available.
 	*/
-	if (MFCD::Offset(File_Name())) {
+	if (MFCD::Offset(Requested_Name())) {
 		return(true);
 	}
 
@@ -452,7 +452,7 @@ int CCFileClass::Open(int rights)
 	void * pointer = NULL;
 	int length = 0;
 	int start = 0;
-	if (MFCD::Offset(File_Name(), &pointer, &mixfile, &start, &length)) {
+	if (MFCD::Offset(Requested_Name(), &pointer, &mixfile, &start, &length)) {
 
 		assert(mixfile != NULL);
 
@@ -468,7 +468,7 @@ int CCFileClass::Open(int rights)
 			**	note that the filename attached to this object is NOT the same as the file
 			**	attached to the file handle.
 			*/
-			char * dupfile = strdup(File_Name());
+			char * dupfile = strdup(Requested_Name());
 			Open(mixfile->Filename, READ);
 			Searching(false);				// Disable multi-drive search.
 			Set_Name(dupfile);
@@ -517,7 +517,7 @@ unsigned int CCFileClass::Get_Date_Time(void)
 	datetime = BASECLASS::Get_Date_Time();
 
 	if ( !datetime ) {
-		if (MFCD::Offset(File_Name(), NULL, &mixfile, NULL, NULL)) {
+		if (MFCD::Offset(Requested_Name(), NULL, &mixfile, NULL, NULL)) {
 			//
 			// check for nested MIX files
 			//
@@ -552,7 +552,7 @@ bool CCFileClass::Set_Date_Time( unsigned int datetime )
 	status = BASECLASS::Set_Date_Time( datetime );
 
 	if ( !status ) {
-		if (MFCD::Offset(File_Name(), NULL, &mixfile, NULL, NULL)) {
+		if (MFCD::Offset(Requested_Name(), NULL, &mixfile, NULL, NULL)) {
 			//
 			// check for nested MIX files
 			//

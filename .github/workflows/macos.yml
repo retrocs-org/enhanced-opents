@@ -4,18 +4,18 @@ name: macOS build
 on:
   workflow_dispatch:
   push:
-    paths:
+    paths: &build_paths
       - "code/**"
       - "thirdparty/**"
+      - "cmake/**"
+      - "tests/**"
       - "tools/macos/**"
       - "tools/rcstrings.py"
+      - "ui/**"
       - "CMakeLists.txt"
       - ".github/workflows/macos.yml"
   pull_request:
-    paths:
-      - "code/platform/posix/**"
-      - "tools/macos/**"
-      - ".github/workflows/macos.yml"
+    paths: *build_paths
 
 permissions:
   contents: read
@@ -42,7 +42,46 @@ jobs:
         run: brew install ninja
 
       - name: Build
+        env:
+          OPENTS_MACOS_BUILD_DIR: ${{ github.workspace }}/build-macos
         run: tools/macos/build.sh Release --zip
+
+      - name: Smoke-test the ZIP
+        run: tools/macos/smoke-zip.sh build-macos/OpenTS-macOS-${{ matrix.arch }}.zip ${{ matrix.arch }} 13.3
+
+      - name: Run portable tests
+        run: |
+          cmake -S . -B build-macos/ninja -DOPENTS_BUILD_TESTS=ON
+          cmake --build build-macos/ninja --parallel "$(sysctl -n hw.ncpu)"
+          ctest --test-dir build-macos/ninja -C Release --output-on-failure --no-tests=error
+
+      - name: Set up Python for the layer checker
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check engine layers
+        run: |
+          python tests/layers/check_layers.py --objects build-macos/ninja/code/CMakeFiles/OpenTS.dir \
+            --baseline tests/layers/macos-release.txt --stale allow --summary
+
+      - name: Test case-sensitive file lookup
+        run: |
+          scratch="$(mktemp -d "${RUNNER_TEMP}/opents-case.XXXXXX")"
+          cleanup() {
+            if [[ -f "$scratch/attached" ]]; then
+              hdiutil detach "$scratch/volume"
+            fi
+            rm -rf "$scratch"
+          }
+          trap cleanup EXIT
+          mkdir "$scratch/volume"
+          hdiutil create -size 512m -fs "Case-sensitive APFS" -type SPARSE -volname "OpenTS Case Test" "$scratch/case.sparseimage"
+          hdiutil attach -nobrowse -mountpoint "$scratch/volume" "$scratch/case.sparseimage"
+          touch "$scratch/attached"
+          touch "$scratch/volume/MixedCase"
+          test ! -e "$scratch/volume/mixedcase"
+          TMPDIR="$scratch/volume" ctest --test-dir build-macos/ninja -C Release -R '^datafilelookup\.' --output-on-failure --no-tests=error
 
       - name: Upload the app
         uses: actions/upload-artifact@v4

@@ -40,6 +40,10 @@ struct UIGameControlsState
 	int Speed = 0;
 	int Scroll = 0;
 	int Detail = 0;
+	int GraphicsScale = 0;
+	int UIScale = 0;
+	int MenuSize = 2;
+	bool HasUIScale = false;
 	int Difficulty = 0;
 	bool CameoText = false;
 	bool ActionLines = false;
@@ -56,6 +60,9 @@ struct UIGameControlsState
 	std::string SpeedName;
 	std::string ScrollName;
 	std::string DetailName;
+	std::string GraphicsScaleName;
+	std::string UIScaleName;
+	std::string MenuSizeName;
 	std::string DifficultyName;
 };
 

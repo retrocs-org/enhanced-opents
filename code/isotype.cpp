@@ -31,6 +31,7 @@
 #include "ccini.h"
 #include "cell.h"
 #include "conquer.h"
+#include "msgloop.h"
 #include "dbgprint.h"
 #include "draw.h"
 #include "dsurface.h"
@@ -639,6 +640,7 @@ void IsometricTileTypeClass::Init_Drawers(void)
 /// demand, rather than pulled out of the mix files right away?</param>
 void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_ccfile)
 {
+	unsigned const start = timeGetTime();
 	int i;
 	int j;
 	int k;
@@ -857,6 +859,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 
 	while (true) {
 		if (callback_timer == 0) {
+			if (Scen != nullptr && Scen->IsReadingScenario) Windows_Message_Handler();
 			Call_Back();
 			callback_timer = 4;
 		}
@@ -1052,8 +1055,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 				found_image = false;
 
 				if (from_ccfile) {
-					CCFileClass file(file_path);
-					found_image = file.Is_Available();
+					found_image = MFCD::Offset(file_path) || CCFileClass(file_path).Is_Available();
 					if (found_image && tile_count == 0) {
 						tile->Filename = file_path;
 					}
@@ -1066,8 +1068,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 				if (!found_image && _NonMarbleMadness && !data.MMSuffix.empty()) {
 					_makepath(file_path, NULL, NULL, tile_name, data.MMSuffix);
 					if (from_ccfile) {
-						CCFileClass file(file_path);
-						found_image = file.Is_Available();
+						found_image = MFCD::Offset(file_path) || CCFileClass(file_path).Is_Available();
 						if (found_image && tile_count == 0) {
 							tile->Filename = file_path;
 						}
@@ -1192,6 +1193,8 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 			}
 		}
 	}
+
+	DebugString("Terrain catalog loaded in %u ms\n", timeGetTime() - start);
 }
 
 
@@ -1206,6 +1209,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 /// kept even if nothing on the map uses them yet?</param>
 void IsometricTileTypeClass::Load_Tiles(bool skipiteration, bool isrand)
 {
+	unsigned const start = timeGetTime();
 	CDTimerClass<SystemTimerClass> timer = 0;
 	IsometricTileTypeClass *ptr;
 
@@ -1246,6 +1250,7 @@ void IsometricTileTypeClass::Load_Tiles(bool skipiteration, bool isrand)
 
 	for (int i = 0; i < IsometricTileTypes.Count(); i++) {
 		if (!timer) {
+			if (Scen != nullptr && Scen->IsReadingScenario) Windows_Message_Handler();
 			Call_Back();
 			timer = 4;
 		}
@@ -1270,7 +1275,7 @@ void IsometricTileTypeClass::Load_Tiles(bool skipiteration, bool isrand)
 		}
 	}
 
-	DebugString("Loaded %d isometric tiles consuming %d Kb\n", tile_count, bytes / 1024);
+	DebugString("Loaded %d isometric tiles consuming %d Kb in %u ms\n", tile_count, bytes / 1024, timeGetTime() - start);
 }
 
 

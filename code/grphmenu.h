@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <functional>
+
 #include "keyboard.h"
 #include "msanim.h"
 #include "msengine.h"
@@ -103,7 +105,7 @@ class GraphicMenu
 		void Add_Item(GraphicMenuItem * item);
 
 		void Set_Item_Enabled(int item_id, bool enabled);
-		int Presentation(void);
+		int Presentation(std::function<bool()> const & leave = {});
 		GraphicMenuItem * Get_Item_Under_Mouse(Point2D const & mouse);
 		GraphicMenuItem * Get_Item_For_Key(KeyNumType key);
 

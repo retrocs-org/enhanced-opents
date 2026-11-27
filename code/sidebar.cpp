@@ -117,6 +117,7 @@
 #include "techtype.h"
 #include "ui/uishell.h"
 #include "uitooltip.h"
+#include "video.h"
 #include "utf8.h"
 #include "voc.h"
 #include "vox.h"
@@ -421,7 +422,7 @@ void SidebarClass::Init_IO(void)
 	SidebarRect.X = TacticalRect.X + TacticalRect.Width;
 	SidebarRect.Y = SIDE_Y;
 	SidebarRect.Width = 641 - SidebarRect.X;
-	SidebarRect.Height = (TacticalRect.Y - SidebarRect.Y) + TacticalRect.Height;
+	SidebarRect.Height = (SidebarSurface != nullptr ? SidebarSurface->Get_Height() : VisibleRect.Height) - SidebarRect.Y;
 
 	/*
 	**	Add the sidebar's buttons only if we're not in editor mode.
@@ -1019,6 +1020,16 @@ void SidebarClass::Draw_It(bool complete)
 void SidebarClass::Blit_Sidebar(bool complete)
 {
 	if (IsSidebarActive && GameActive && ScenarioActive) {
+		if (Video_Sidebar_Width() != SIDE_WIDTH || SidebarSurface->Get_Height() != VisibleRect.Height) {
+			if (IsToBlitSidebar || complete || IsToRedrawCredits || Map.LastDrawRect != RECT_NONE) {
+				Rect const destination(Options.IsSidebarOnRight ? TacticalRect.Width : 0, 0,
+					Video_Sidebar_Width(), VisibleRect.Height);
+				VisibleSurface->Blit_From(destination, *SidebarSurface, SidebarSurface->Get_Rect());
+				IsToRedrawCredits = false;
+			}
+			IsToBlitSidebar = false;
+			return;
+		}
 
 		if (!IsToBlitSidebar && !complete) {
 			IsToBlitSidebar = false;
@@ -2693,7 +2704,7 @@ void SidebarClass::Reposition_Sidebar(void)
 	SidebarRect.X = Options.IsSidebarOnRight ? TacticalRect.X + TacticalRect.Width : 0;
 	SidebarRect.Y = SIDE_Y;
 	SidebarRect.Width = SIDE_WIDTH;
-	SidebarRect.Height = TacticalRect.Height + TacticalRect.Y - SIDE_Y;
+	SidebarRect.Height = (SidebarSurface != nullptr ? SidebarSurface->Get_Height() : VisibleRect.Height) - SIDE_Y;
 
 	BASECLASS::Reposition_Sidebar();
 

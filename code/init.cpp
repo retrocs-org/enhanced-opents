@@ -143,9 +143,11 @@
 #include "movie.h"
 #include "mplayer.h"
 #include "msgbox.h"
+#include "ui/screens/msgbox/uimsgbox.h"
 #include "netdlg.h"
 #include "netdlg2.h"
 #include "newmenu.h"
+#include "video.h"
 #include "obscure.h"
 #include "opents_build.h"
 #include "overlay.h"
@@ -184,6 +186,7 @@
 #include "tutorial.h"
 #include "ui/screens/campaign/uicampaign.h"
 #include "ui/screens/diplomacy/uidiplomacy.h"
+#include "ui/screens/mapedit/uimapedit.h"
 #include "ui/screens/menu/uimenu.h"
 #include "ui/screens/version/uiversion.h"
 #include "ui/uienginehost.h"
@@ -250,7 +253,7 @@ static bool Init_Fonts(void);
 static bool Init_Bootstrap_Mixfiles(void);
 static bool Init_Secondary_Mixfiles(void);
 static void Init_Mouse(void);
-static bool Bootstrap(void);
+static bool Bootstrap(bool & archive_failed);
 static bool Init_Bulk_Data(void);
 static void Init_Keys(void);
 static bool Init_Rules(void);
@@ -366,8 +369,15 @@ int Init_Game(int , char * [])
 	*/
 	DebugString("Bootstrap.....");
 
-	if (!Bootstrap()) {
+	bool archive_failed = false;
+	if (!Bootstrap(archive_failed)) {
 		DebugStringNoPrefix(" ..Failed to bootstrap!\n");
+#if !defined(_WIN32) && !defined(_DEMO)
+		if (archive_failed) {
+			Report_Missing_Game_Data("CACHE.MIX");
+			return(1);
+		}
+#endif
 		return(-1);
 	}
 
@@ -388,7 +398,12 @@ int Init_Game(int , char * [])
 
 	if (!Init_Secondary_Mixfiles()) {
 		DebugStringNoPrefix(" ...Failed!!!\n");
+#if !defined(_WIN32) && !defined(_DEMO)
+		Report_Missing_Game_Data("CONQUER.MIX");
+		return(1);
+#else
 		return(-1);
+#endif
 	}
 
 	DebugStringNoPrefix(" ...OK\n");
@@ -840,6 +855,7 @@ bool Select_Game(bool )
 	bool process;					// false = break out of while loop
 
 	static int protocol = -1;
+	MapEditorPlaytest editor_playtest;
 
 	/// RA2 calls this here, bugfix?
 	//Theme.Play_Song(Fetch_Main_Menu_Theme());
@@ -847,6 +863,7 @@ bool Select_Game(bool )
 	Show_Mouse();
 
 restart:
+	editor_playtest = {};
 	// A scenario that failed to start returns here with its side's archives still searched first.
 	Prep_For_No_Side();
 
@@ -928,7 +945,10 @@ restart:
 	**	If the last game we played was a multiplayer game, jump right to that
 	**	menu by pre-setting 'selection'.
 	*/
-	if (Session.Type == GAME_NORMAL) {
+	if (UI_Map_Editor_Resume_Requested()) {
+		Session.Type = GAME_NORMAL;
+		selection = SEL_MAP_EDITOR;
+	} else if (Session.Type == GAME_NORMAL) {
 		selection = SEL_NONE;
 	} else {
 		selection = SEL_MULTIPLAYER_GAME;
@@ -961,6 +981,17 @@ restart:
 			Theme.Stop(true);
 		}
 
+		struct MenuPresentationScope {
+			explicit MenuPresentationScope(bool active) : Active(active)
+			{
+				if (Active) Video_Set_Menu_Presentation(true);
+			}
+			~MenuPresentationScope()
+			{
+				if (Active) Video_Set_Menu_Presentation(false);
+			}
+			bool Active;
+		} menu_presentation(process);
 		while (process) {
 
 			/*
@@ -1137,9 +1168,41 @@ restart:
 					selection = SEL_NONE;
 					break;
 
+				case SEL_MAP_EDITOR:
+					editor_playtest = UI_Map_Editor_Dialog();
+					if (editor_playtest.Data.empty()) {
+						selection = SEL_OPTIONS;
+						break;
+					}
+					Session.Read_MultiPlayer_Settings();
+					Prepare_Side_Roster();
+					Clear_Vector(&Session.Players);
+					Clear_Vector(&Session.Computers);
+					Session.Type = editor_playtest.Scripted ? GAME_NORMAL : GAME_SKIRMISH;
+					Session.LocalPlayer = -1;
+					Session.Options.AIPlayers = editor_playtest.Scripted ? 0 : editor_playtest.Opponents;
+					Session.Options.GameSpeed = Options.GameSpeed;
+					Session.Options.Bases = true;
+					Session.Options.UnitCount = 0;
+					Session.Options.Credits = 10000;
+					Session.Options.ShortGame = false;
+					Session.PlayerHouse = HOUSE_FIRST;
+					if (!editor_playtest.Scripted) {
+						auto * player = new NodeNameType;
+						std::strcpy(player->Name, "Playtest");
+						player->Player.House = -1;
+						player->Player.Color = -1;
+						player->Player.ProcessTime = -1;
+						player->Player.SpawnChoice = editor_playtest.Slot;
+						Session.Players.Add(player);
+					}
+					std::strcpy(Scen->ScenarioName, "EDITTEST.MPR");
+					Scen->SourceFile.Assign("EDITTEST.MPR", std::vector<char>(editor_playtest.Data.begin(), editor_playtest.Data.end()));
+					process = false;
+					break;
+
 				case SEL_OPTIONS:
-					selection = SEL_NONE;
-					Main_Options_Dialog();
+					selection = Main_Options_Dialog() ? SEL_MAP_EDITOR : SEL_NONE;
 					break;
 
 				case SEL_VERSION: {
@@ -1240,8 +1303,9 @@ restart:
 			Session.Options.GameSpeed = Options.GameSpeed;
 		}
 
-		if (Session.Type != GAME_NORMAL || Debug_ForceScenario || Launch::Is_Active()) {
-			if (!Start_Scenario(Scen->ScenarioName, true, Launch::Is_Active() ? Scen->Campaign : CAMPAIGN_NONE)) {
+		if (!editor_playtest.Data.empty() || Session.Type != GAME_NORMAL || Debug_ForceScenario || Launch::Is_Active()) {
+			if (!Start_Scenario(editor_playtest.Data.empty() ? Scen->ScenarioName : "EDITTEST.MPR",
+				editor_playtest.Data.empty(), Launch::Is_Active() ? Scen->Campaign : CAMPAIGN_NONE)) {
 				if (Debug_Map) {
 					return(false);
 				} else {
@@ -1420,6 +1484,7 @@ bool Parse_Command_Line(int argc, char * argv[])
 #endif
 
 	for (int index = 1; index < argc; index++) {
+#ifdef _WIN32
 		char arg_string[512];
 		char * string = arg_string;		// Pointer to argument.
 
@@ -1437,6 +1502,16 @@ bool Parse_Command_Line(int argc, char * argv[])
 		char original[512];
 		strcpy(original, arg_string);
 		strupr(string);
+#else
+		std::string const original = argv[index];
+		if (original.empty()) continue;
+
+		std::string uppercase = original;
+		for (char & byte : uppercase) {
+			if (byte >= 'a' && byte <= 'z') byte -= 'a' - 'A';
+		}
+		char * string = uppercase.data();
+#endif
 
 		/*
 		**	Print usage text only if requested.
@@ -1519,6 +1594,11 @@ bool Parse_Command_Line(int argc, char * argv[])
 			continue;
 		}
 
+		if (stricmp(string, "-EDITORCAPTURE") == 0) {
+			MapCapture::Request_Editor_View();
+			continue;
+		}
+
 		if (strnicmp(string, "-CAPTUREMAP=", strlen("-CAPTUREMAP=")) == 0) {
 			Launch::Note_Switch("-CAPTUREMAP=");
 			MapCapture::Request_Map(&original[strlen("-CAPTUREMAP=")]);
@@ -1543,7 +1623,7 @@ bool Parse_Command_Line(int argc, char * argv[])
 			continue;
 		}
 
-		if (memcmp(string, "-TIME=", 6) == 0) {
+		if (strncmp(string, "-TIME=", 6) == 0) {
 			Launch::Note_Switch("-TIME=");
 			sscanf(&string[6], "%d", &TournamentTime);
 		}
@@ -1789,10 +1869,10 @@ void Init_Random(void)
  * HISTORY:                                                                                    *
  *   06/03/1996 JLB : Created.                                                                 *
  *=============================================================================================*/
-void Load_Title_Page(const char * name, bool visible)
+void Load_Title_Page(const char * name, bool visible, Point2D * size)
 {
 	HiddenSurface->Fill(0);
-	Load_Title_Screen(name, HiddenSurface, &CCPalette);
+	Load_Title_Screen(name, HiddenSurface, &CCPalette, size);
 	if (visible)
 		Update_Visible_Surface(HiddenSurface);
 }
@@ -2361,7 +2441,7 @@ static bool Init_Secondary_Mixfiles(void)
  * HISTORY:                                                                                    *
  *   06/03/1996 JLB : Created.                                                                 *
  *=============================================================================================*/
-static bool Bootstrap(void)
+static bool Bootstrap(bool & archive_failed)
 {
 	/*
 	**	Process the message loop until we are in focus. We need to be in focus to read pixels from
@@ -2384,6 +2464,7 @@ static bool Bootstrap(void)
 	*/
 
 	if (!Init_Bootstrap_Mixfiles()) {
+		archive_failed = true;
 		DebugString("Failed to initialize bootstrap mixfiles!\n");
 		return(false);
 	}
@@ -2808,6 +2889,10 @@ void Draw_Version_Text(Surface * surface)
 	Cheat_Version_Suffix(version);
 
 	rect = surface->Get_Rect();
+	VideoScaleInfo const & video = Video_Get_Scale_Info();
+	if (surface == HiddenSurface && video.GameWidth > 0 && video.GameHeight > 0) {
+		rect = Rect(video.SourceX, video.SourceY, video.GameWidth, video.GameHeight);
+	}
 
 	Fancy_Text_Print(
 		"V%s",
@@ -6292,6 +6377,10 @@ int New_Main_Menu(void)
 		case NSEL_SKIRMISH:
 			Session.Type = GAME_SKIRMISH;
 			break;
+
+		case NSEL_WDT:
+			UI_Frontier_Dialog(Main_Window_Frontier_Briefing());
+			return(SEL_NONE);
 
 		case NSEL_OPTIONS:
 			return(SEL_OPTIONS);

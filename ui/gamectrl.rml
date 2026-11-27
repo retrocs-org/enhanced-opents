@@ -13,10 +13,13 @@
 	<link type="text/template" href="dialog.rml"/>
 	<link type="text/rcss" href="gamectrl.rcss"/>
 </head>
-<body template="dialog" data-model="gamectrl" data-class-frontend="!ingame" data-class-difficulty="hasdifficulty">
+<body template="dialog" data-model="gamectrl" data-class-frontend="!ingame" data-class-difficulty="hasdifficulty" data-class-uiscaling="hasuiscale">
 	<div class="row" id="row-speed"><span class="caption">Game Speed<span data-if="ingame">:</span></span><input type="range" id="speed" min="0" max="6" step="1" data-attr-value="6 - speed" data-event-change="queue('speed', 6 - ev.value)"/><span class="value" id="speed-name">{{speedname}}</span></div>
 	<div class="row" id="row-scroll"><span class="caption">Scroll Rate<span data-if="ingame">:</span></span><input type="range" id="scroll" min="0" max="6" step="1" data-attr-value="6 - scroll" data-event-change="queue('scroll', 6 - ev.value)"/><span class="value" id="scroll-name">{{scrollname}}</span></div>
 	<div class="row" id="row-detail"><span class="caption">Visual Details<span data-if="ingame">:</span></span><input type="range" id="detail" min="0" max="2" step="1" data-attr-value="detail" data-event-change="queue('detail', ev.value)"/><span class="value" id="detail-name">{{detailname}}</span></div>
+	<div class="row" id="row-graphicsscale" data-if="hasuiscale"><span class="caption">Game Graphics<span data-if="ingame">:</span></span><input type="range" id="graphicsscale" min="0" max="4" step="1" data-attr-value="graphicsscale" data-event-change="queue('graphicsscale', ev.value)"/><span class="value">{{graphicsscalename}}</span></div>
+	<div class="row" id="row-uiscale" data-if="hasuiscale"><span class="caption">Game UI Scale<span data-if="ingame">:</span></span><input type="range" id="uiscale" min="0" max="4" step="1" data-attr-value="uiscale" data-event-change="queue('uiscale', ev.value)"/><span class="value">{{uiscalename}}</span></div>
+	<div class="row" id="row-menusize" data-if="hasuiscale"><span class="caption">Menu UI Size<span data-if="ingame">:</span></span><input type="range" id="menusize" min="0" max="2" step="1" data-attr-value="menusize" data-event-change="queue('menusize', ev.value)"/><span class="value">{{menusizename}}</span></div>
 	<div class="row" id="row-difficulty" data-if="hasdifficulty"><span class="caption">Difficulty</span><input type="range" id="difficulty" min="0" max="2" step="1" data-attr-value="difficulty" data-event-change="queue('difficulty', ev.value)"/><span class="value" id="difficulty-name">{{difficultyname}}</span></div>
 	<div id="switches"><div class="column">
 		<label class="check" id="switch-cameo"><input type="checkbox" id="cameo" data-attrif-checked="cameo" data-event-click="queue('cameo', cameo ? 0 : 1)"/><span data-if="ingame">Sidebar Text</span><span data-if="!ingame">Cameo Text</span></label>

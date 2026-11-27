@@ -67,7 +67,15 @@ if(APPLE)
     else()
         set(OPENTS_ICON "")
     endif()
-    add_executable(OpenTS MACOSX_BUNDLE ${OPENTS_SRC} ${OPENTS_ICON})
+    add_library(OpenTSMacDialogs OBJECT
+        platform/posix/macos/gamedatapicker.mm
+        platform/posix/macos/precisescroll.mm)
+    target_link_libraries(OpenTSMacDialogs PRIVATE SDL3::SDL3-static)
+    set_target_properties(OpenTSMacDialogs PROPERTIES OBJCXX_STANDARD 20 OBJCXX_STANDARD_REQUIRED ON)
+    set(OPENTS_ISO_IMPORTER "${CMAKE_SOURCE_DIR}/tools/macos/import-iso.sh")
+    set_source_files_properties("${OPENTS_ISO_IMPORTER}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    add_executable(OpenTS MACOSX_BUNDLE ${OPENTS_SRC} ${OPENTS_ICON} "${OPENTS_ISO_IMPORTER}")
+    target_sources(OpenTS PRIVATE $<TARGET_OBJECTS:OpenTSMacDialogs>)
 elseif(OPENTS_POSIX)
     add_executable(OpenTS ${OPENTS_SRC})
 else()
@@ -290,6 +298,7 @@ if(OPENTS_POSIX)
     if(APPLE)
         target_link_libraries(OpenTS PRIVATE
             "-framework Cocoa" "-framework Metal" "-framework QuartzCore"
+            "-framework UniformTypeIdentifiers"
             "-framework IOKit" "-framework CoreAudio" "-framework AudioToolbox"
             "-framework CoreFoundation"
         )
@@ -400,6 +409,7 @@ else()
     set(OPENTS_UI_DEST "$<TARGET_FILE_DIR:OpenTS>/ui")
 endif()
 add_custom_target(OpenTSUIFiles ALL
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${OPENTS_UI_DEST}"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/ui" "${OPENTS_UI_DEST}"
     COMMENT "Copying the UI files beside the executable"
     VERBATIM

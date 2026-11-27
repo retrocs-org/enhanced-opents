@@ -216,9 +216,9 @@ int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & o
 		menu->Set_Item_Enabled(option, false);
 	}
 
-	int result = menu->Presentation();
+	int const result = menu->Presentation();
 	delete menu;
-	return((int)result);
+	return(result);
 }
 
 
@@ -310,10 +310,8 @@ int NewMenuClass::Display_Firestorm_Menu(void)
 		options.Add(NSEL_LOAD_MISSION);
 	}
 
-	// Both buttons are drawn by the menu artwork, so they are disabled rather than taken
-	// away. Neither the online service they led to nor the tour it hosted can be reached.
+	// The Internet button still points to the retired online service.
 	options.Add(NSEL_INTERNET);
-	options.Add(NSEL_WDT);
 
 	return(Display_Menu("FirestormMenu", options));
 }

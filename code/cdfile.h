@@ -34,10 +34,13 @@
 
 #include "bfiofile.h"
 
+#include <string>
+
 /*
  * This class is derived from the BufferIOFileClass, and adds the ability to search across
  * several directories for a file. A file this player's own game wrote is found first, then
- * the current directory, then every directory in the search list in turn.
+ * the current directory, then every directory in the search list in turn. With a data
+ * path set, bare names skip the current directory.
  *
  * A file opened for writing, created or deleted is not searched for at all. It resolves to
  * the player's own directory, so that what a deployment ships is read from and never written
@@ -69,8 +72,12 @@ class CDFileClass : public BufferIOFileClass
 		static void Clear_Search_Drives(void);
 		static char const * Search_Path(int index);
 
+		static void Set_Data_Path(char const * path);
 		static void Set_User_Path(char const * path);
 		static char const * User_Path(void);
+
+	protected:
+		char const * Requested_Name() const { return(RequestedName); }
 
 	private:
 
@@ -78,7 +85,7 @@ class CDFileClass : public BufferIOFileClass
 		void Point_At_Own_Copy(void);
 
 		static bool Has_Directory(char const * filename);
-		static bool User_Path_For(char const * filename, char * buffer, int size);
+		static std::string User_Path_For(char const * filename);
 
 		/*
 		**	Is multi-drive searching disabled for this file object?

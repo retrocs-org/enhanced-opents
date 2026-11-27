@@ -14,3 +14,8 @@ opents_add_test(GameLaunchTest
     DEFINITIONS WIN32 _WINDOWS _MBCS NOMINMAX
     DOCTEST
 )
+
+if(OPENTS_POSIX)
+    target_sources(GameLaunchTest PRIVATE "${CMAKE_SOURCE_DIR}/code/platform/posix/wincompat.cpp")
+    target_include_directories(GameLaunchTest PRIVATE "${CMAKE_SOURCE_DIR}/code/platform/posix")
+endif()

@@ -106,10 +106,7 @@ static std::string DirectoryError;
 
 static void Report_Directory_Error(char const * what, std::string const & path)
 {
-	char message[MAX_PATH + 128];
-
-	sprintf(message, "The %s directory cannot be used:\n\n%s", what, path.c_str());
-	DirectoryError = message;
+	DirectoryError = "The " + std::string(what) + " directory cannot be used:\n\n" + path;
 
 	DebugString("[GameDirs] %s directory unusable: %s.\n", what, path.c_str());
 	printf("The %s directory cannot be used: %s\n", what, path.c_str());
@@ -133,6 +130,9 @@ static bool Is_Directory(std::string const & path)
 void Set_Data_Directory(char const * path)
 {
 	DataDirectory = Terminate_Path(Trim_Path(path != NULL ? path : ""));
+#ifndef _WIN32
+	CDFileClass::Set_Data_Path(DataDirectory.c_str());
+#endif
 }
 
 
@@ -370,7 +370,10 @@ std::vector<std::string> Search_Files(char const * pattern)
 		Scan_Folder(user, pattern, names);
 	}
 
-	Scan_Folder("", pattern, names);
+#ifndef _WIN32
+	if (DataDirectory.empty())
+#endif
+		Scan_Folder("", pattern, names);
 
 	for (int index = 0; ; index++) {
 		char const * path = CDFileClass::Search_Path(index);

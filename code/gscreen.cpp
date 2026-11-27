@@ -55,7 +55,9 @@
 #include "_tooltip.h"
 #include "_xmouse.h"
 #include "bench.h"
+#include "dsurface.h"
 #include "gadget.h"
+#include "globals.h"
 #include "goptions.h"
 #include "keyboard.h"
 #include "savestream.h"
@@ -495,7 +497,7 @@ void Update_Visible_Surface(Surface *surface, Rect *rect)
 
 	/// Adjust for sidebar position
 	if (!Options.IsSidebarOnRight && !Debug_Map) {
-		dest_rect.X += std::max(std::min(SidebarSurface->Get_Width(), VisibleRect.Width - dest_rect.Width), 0);
+		dest_rect.X += std::max(std::min(Video_Sidebar_Width(), VisibleRect.Width - dest_rect.Width), 0);
 	}
 
 	/*

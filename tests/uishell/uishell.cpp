@@ -341,7 +341,7 @@ class TestHostClass : public UIShellHostClass
 
 		int Magnification = 1;
 
-		virtual int Art_Magnification(void) const override
+		virtual int Art_Magnification(float) const override
 		{
 			return(Magnification);
 		}
@@ -587,10 +587,11 @@ bool Text(UIShellClass & shell, char32_t code)
 }
 
 
-bool Focus(UIShellClass & shell, bool focused)
+bool Focus(UIShellClass & shell, bool focused, bool clickthrough = false)
 {
 	WindowEvent event;
 	event.Type = focused ? WINDOW_EVENT_FOCUS_GAINED : WINDOW_EVENT_FOCUS_LOST;
+	event.FocusClickThrough = clickthrough;
 	return(Send(shell, event));
 }
 
@@ -1390,6 +1391,8 @@ TEST_CASE("the game controls presenter names the starting slider positions it ha
 	state.Speed = 3;
 	state.Scroll = 3;
 	state.Detail = 2;
+	state.HasUIScale = true;
+	state.UIScale = 2;
 	state.Difficulty = 1;
 	state.InGame = false;
 	state.HasDifficulty = true;
@@ -1401,6 +1404,18 @@ TEST_CASE("the game controls presenter names the starting slider positions it ha
 	CHECK_MESSAGE(presenter.State.DetailName == "High", "the presenter names the starting slider positions it has names for");
 	CHECK_MESSAGE(presenter.State.ScrollName.empty(), "the presenter names the starting slider positions it has names for");
 
+	CHECK(presenter.State.UIScaleName == "100%");
+	CHECK(presenter.State.MenuSizeName == "Large");
+	Drive(presenter, "graphicsscale", 3);
+	CHECK(presenter.State.GraphicsScaleName == "125%");
+	CHECK(presenter.State.UIScaleName == "100%");
+	CHECK(presenter.State.MenuSizeName == "Large");
+	Drive(presenter, "menusize", 1);
+	CHECK(presenter.State.MenuSizeName == "Medium");
+	Drive(presenter, "uiscale", 9);
+	CHECK(presenter.State.UIScaleName == "150%");
+	Drive(presenter, "uiscale", 0);
+	CHECK(presenter.State.UIScaleName == "Native");
 	Drive(presenter, "speed", 5);
 	Drive(presenter, "detail", 9);
 	Drive(presenter, "cameo", 1);
@@ -3490,9 +3505,9 @@ void Test_Main_Options_Screen(Rml::Context & context, CountingSystemInterfaceCla
 		CHECK_MESSAGE(system.Problems == problems, "the options menu raises no RmlUi warning or error");
 
 		std::vector<Rml::Element *> buttons = Buttons_Top_Down(Rml(*view).Document());
-		CHECK_MESSAGE(buttons.size() == 5, "the options menu has five buttons");
-		bool ordered = buttons.size() == 5 && buttons[0]->GetId() == "settings" && buttons[1]->GetId() == "display" && buttons[2]->GetId() == "sound" && buttons[3]->GetId() == "keyboard" && buttons[4]->GetId() == "mainmenu";
-		CHECK_MESSAGE(ordered, "the buttons run Game Settings, Display, Sound, Keyboard, Main Menu from the top");
+		CHECK_MESSAGE(buttons.size() == 6, "the options menu has six buttons");
+		bool ordered = buttons.size() == 6 && buttons[0]->GetId() == "settings" && buttons[1]->GetId() == "display" && buttons[2]->GetId() == "sound" && buttons[3]->GetId() == "keyboard" && buttons[4]->GetId() == "map-editor" && buttons[5]->GetId() == "mainmenu";
+		CHECK_MESSAGE(ordered, "the buttons run Game Settings, Display, Sound, Keyboard, Map Editor, Main Menu from the top");
 
 		Rml::Element * dialog = Rml(*view).Document()->GetElementById("reveal");
 		float center = (float)context.GetDimensions().y * 0.5f;
@@ -3516,12 +3531,12 @@ void Test_Main_Options_Screen(Rml::Context & context, CountingSystemInterfaceCla
 		context.SetDensityIndependentPixelRatio(2.0f);
 		context.Update();
 		bool doubled = dialog != nullptr && dialog->GetBox().GetSize(Rml::BoxArea::Border) == Rml::Vector2f(600.0f, 482.0f)
-			&& buttons.size() == 5 && buttons[0]->GetBox().GetSize(Rml::BoxArea::Border) == Rml::Vector2f(380.0f, 48.0f);
+			&& buttons.size() == 6 && buttons[0]->GetBox().GetSize(Rml::BoxArea::Border) == Rml::Vector2f(380.0f, 48.0f);
 		CHECK_MESSAGE(doubled, "the menu and its buttons are twice the size at twice the ratio");
 		context.SetDensityIndependentPixelRatio(1.0f);
 		context.Update();
 
-		if (buttons.size() == 5) {
+		if (buttons.size() == 6) {
 			Click(context, buttons[1]);
 			presenter.Drain();
 			REQUIRE_MESSAGE(presenter.Result.has_value(), "the Display button closes the menu with the display choice");
@@ -3564,6 +3579,15 @@ void Test_Main_Options_Screen(Rml::Context & context, CountingSystemInterfaceCla
 		REQUIRE_MESSAGE(presenter.Result.has_value(), "Escape leaves the options menu");
 		CHECK_MESSAGE(*presenter.Result == UI_RESULT_CANCELLED, "Escape leaves the options menu");
 		CHECK_MESSAGE(presenter.Choice == UI_MAIN_OPTIONS_LEAVE, "Escape leaves the options menu");
+
+		Rml::Element * editor = Rml(*view).Document()->GetElementById("map-editor");
+		REQUIRE(editor != nullptr);
+		presenter.Result.reset();
+		Click(context, editor);
+		presenter.Drain();
+		REQUIRE(presenter.Result.has_value());
+		CHECK(*presenter.Result == UI_RESULT_ACCEPTED);
+		CHECK(presenter.Choice == UI_MAIN_OPTIONS_MAP_EDITOR);
 
 		view->Release();
 		context.Update();
@@ -6188,8 +6212,17 @@ TEST_CASE("the shell runs modal screens over its host, routes their input, and s
 				&& Release(shell, WINDOW_BUTTON_X1, PointType{ 10, 10 })
 				&& Wheel(shell, PointType{ 10, 10 }, 1.0f, true);
 			host.Down['C'] = true;
+			host.Down[VK_LBUTTON] = true;
 			Focus(shell, true);
+			CHECK(shell.Input_State().Mouse_Owner(0) == UI_INPUT_SUPPRESSED);
+			Focus(shell, false);
+			Focus(shell, true, true);
 			focused = shell.Input_State().Key_Owner('C') == UI_INPUT_SUPPRESSED;
+			CHECK(shell.Input_State().Mouse_Owner(0) == UI_INPUT_NONE);
+			CHECK(Press(shell, WINDOW_BUTTON_LEFT, PointType{ 2000, 2000 }));
+			CHECK(shell.Input_State().Mouse_Owner(0) == UI_INPUT_RML);
+			host.Down[VK_LBUTTON] = false;
+			CHECK(Release(shell, WINDOW_BUTTON_LEFT, PointType{ 2000, 2000 }));
 			host.Down['C'] = false;
 			Key_Up(shell, 'C');
 			Key_Down(shell, VK_ESCAPE);

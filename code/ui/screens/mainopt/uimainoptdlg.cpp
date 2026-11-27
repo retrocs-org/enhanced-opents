@@ -17,6 +17,7 @@
 #include "ui/uienginehost.h"
 #include "ui/uishell.h"
 #include "ui/uiview.h"
+#include "video.h"
 
 
 void UI_Main_Options_State(UIMainOptionsState & state)
@@ -24,7 +25,7 @@ void UI_Main_Options_State(UIMainOptionsState & state)
 	state = UIMainOptionsState();
 	state.SoundEnabled = AudioEngine.Is_Available();
 	if (HiddenSurface != NULL) {
-		state.Top = (HiddenSurface->Get_Height() - 400) / 2 + 147;
+		state.Top = (Video_Get_Scale_Info().GameHeight - 400) / 2 + 147;
 	}
 }
 

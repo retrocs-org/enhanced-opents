@@ -1,9 +1,9 @@
 # Layer references
 
 `check_layers.py` reports the references between engine source files that
-point against a proposed layer order. The order is a proposal: the sources
-have not moved, CTest does not run the script, and nothing fails when a
-reference is added.
+point against a proposed layer order. The macOS Release workflow checks both
+architectures against [its baseline](macos-release.txt) and fails on new
+source-file pairs.
 
 [`layers.toml`](layers.toml) assigns each source file to a layer, by directory
 for `code/audio/`, `code/sdl/`, and `code/ui/` and by name for every other
@@ -29,6 +29,10 @@ files:
 ```powershell
 python tests/layers/check_layers.py --objects build/code/OpenTS.dir/Debug
 ```
+
+For a local macOS Ninja build, pass
+`--objects ~/Development/builds/opents-mac/ninja/code/CMakeFiles/OpenTS.dir`.
+The script scans the directory recursively and reads COFF or 64-bit Mach-O objects.
 
 The script prints the number of file pairs with a reference against the
 order, for each pair of layers. `--list` also prints each pair of files:
@@ -61,6 +65,9 @@ reference can therefore still fail to link without the layers above it.
 a reference against the order, or when a line in the file no longer applies;
 `--stale allow` passes the second case. A second reference between a listed
 pair passes.
+
+Review new pairs before updating the baseline. Run the comparison on Release
+objects first so the report shows the symbols responsible for each new pair.
 
 `python tests/layers/test_check_layers.py` runs the script's own tests. Both
 need Python 3.11 or newer.

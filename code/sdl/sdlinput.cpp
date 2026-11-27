@@ -176,6 +176,9 @@ int SDLInputStateClass::Modifiers(void) const
 	if ((KeyModifiers & SDL_KMOD_NUM) != 0) {
 		modifiers |= WINDOW_MOD_NUM;
 	}
+	if ((KeyModifiers & SDL_KMOD_GUI) != 0) {
+		modifiers |= WINDOW_MOD_META;
+	}
 	return(modifiers);
 }
 

@@ -90,12 +90,12 @@ class UIShellClass
 		bool Active(void) const;
 		bool Documents_Visible(void) const;
 		bool Text_Input_Focused(void) const;
-		void Apply_Dimensions(void);
+		void Apply_Dimensions(bool opening_modal = false);
 		void Drop_Cached_Files(void);
 		UIPointerPosition Pointer_Position(int x, int y) const;
 		std::array<bool, UIInputStateClass::BUTTON_COUNT> Physical_Buttons(void) const;
 		int Key_Modifiers(void) const;
-		void Quarantine_Held_Input(void);
+		void Quarantine_Held_Input(bool include_mouse = true);
 		void Reconcile_Held_Input(void);
 		void Drop_Presses(void);
 		void Release_UI_Capture(void);

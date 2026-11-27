@@ -34,7 +34,9 @@ source_files:
 
 A saved game is a file in a format specific to OpenTS: `.SAV` for campaigns and skirmishes, and `.NET` for [games against other machines](#numbered-multiplayer-saves). Each file begins with a fixed header and a table of the details the load dialog lists a save by. The game state follows as one block, compressed when compression makes it smaller. The load dialog reads only the header and the table to list a save.
 
-The game writes each save under a temporary name and moves it into place once every byte is on disk, so an interrupted save leaves the previous file intact.
+Each save attempt writes to its own temporary file and moves it into place after the write succeeds.
+An interrupted attempt leaves the previous save intact. When two attempts finish writing to the
+same name, the last successful replacement determines which save stays on disk.
 
 ## Where the files are
 

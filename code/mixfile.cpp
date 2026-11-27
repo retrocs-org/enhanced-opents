@@ -119,7 +119,7 @@ MixFileClass::MixFileClass(char const * filename, PKey const * key) :
 	Data(NULL)
 {
 	CCFileClass file(filename);		// Working file object.
-	Filename = strdup(file.File_Name());
+	Filename = strdup(file.CDFileClass::Is_Available() ? file.File_Name() : filename);
 	FileStraw fstraw(file);
 	PKStraw pstraw(PKStraw::DECRYPT, CryptRandom);
 	Straw * straw = &fstraw;
@@ -140,7 +140,7 @@ MixFileClass::MixFileClass(char const * filename, PKey const * key) :
 	**	whether this is an extended mixfile format or the plain format. An
 	**	extended format may have extra options or data layout.
 	*/
-	int got = straw->Get(&alternate, sizeof(alternate));
+	if (straw->Get(&alternate, sizeof(alternate)) != sizeof(alternate)) return;
 
 	/*
 	**	Detect if this is an extended mixfile. If so, then see if it is encrypted
@@ -156,13 +156,15 @@ MixFileClass::MixFileClass(char const * filename, PKey const * key) :
 			pstraw.Get_From(&fstraw);
 			straw = &pstraw;
 		}
-		straw->Get(&fileheader, sizeof(fileheader));
+		if (straw->Get(&fileheader, sizeof(fileheader)) != sizeof(fileheader)) return;
 
 	} else {
 		memmove(&fileheader, &alternate, sizeof(alternate));
-		straw->Get(((char*)&fileheader)+sizeof(alternate), sizeof(fileheader)-sizeof(alternate));
+		int const remaining = sizeof(fileheader) - sizeof(alternate);
+		if (straw->Get(((char*)&fileheader) + sizeof(alternate), remaining) != remaining) return;
 	}
 
+	if (fileheader.count < 0 || fileheader.size < 0) return;
 	Count = fileheader.count;
 	DataSize = fileheader.size;
 //BGMono_Printf("Mixfileclass %s DataSize: %08x   \n",filename,DataSize);Get_Key();
@@ -171,7 +173,8 @@ MixFileClass::MixFileClass(char const * filename, PKey const * key) :
 	*/
 	HeaderBuffer = new SubBlock [Count];
 	if (HeaderBuffer == NULL) return;
-	straw->Get(HeaderBuffer, Count * sizeof(SubBlock));
+	int const index_size = Count * sizeof(SubBlock);
+	if (straw->Get(HeaderBuffer, index_size) != index_size) return;
 
 	/*
 	**	The start of the embedded mixfile data will be at the current file offset.
@@ -570,10 +573,9 @@ bool MixFileClass::Offset(char const * filename, void ** realptr, MixFileClass *
 	*/
 
 	/// Can't call strupr on a const string.
-	char filename_upper[_MAX_PATH];
-	strcpy(filename_upper, filename);
-	strupr(filename_upper);
-	int crc = (CRCEngine()(filename_upper, strlen(filename_upper))); //Calculate_CRC(strupr((char *)filename), strlen(filename));
+	std::string filename_upper(filename);
+	strupr(filename_upper.data());
+	int crc = (CRCEngine()(filename_upper.data(), (int)filename_upper.size()));
 
 	SubBlock key;
 	key.CRC = crc;

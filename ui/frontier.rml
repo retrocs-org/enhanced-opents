@@ -1,0 +1,22 @@
+<rml>
+<head>
+  <title>World Domination Tour</title>
+  <link type="text/template" href="dialog.rml"/>
+  <link type="text/rcss" href="frontier.rcss"/>
+</head>
+<body template="dialog" data-model="frontier">
+  <h1>Frontier</h1>
+  <p data-if="status != ''">{{status}}</p>
+  <div id="territory-map" data-if="territories.size > 0">
+    <div class="territory" data-for="tile : territories" data-class-gdi="tile.owner == 'GDI'" data-class-nod="tile.owner == 'Nod'">
+      <div class="marker"></div>
+      <p>{{tile.name}}</p><p>{{tile.owner}}</p><p data-if="tile.state != ''">{{tile.state}}</p>
+    </div>
+  </div>
+  <div id="frontier-history" data-if="territories.size > 0">
+    <h2>Recent battles</h2>
+    <p data-for="entry : history">{{entry}}</p>
+  </div>
+  <button data-event-click="queue('cancel')">Back</button>
+</body>
+</rml>

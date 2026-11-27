@@ -6,6 +6,7 @@ opents_add_test(MixOrder
     NAME mixorder
     SOURCES mixorder.cpp
     ENGINE
+        base64.cpp
         mixfile.cpp
         ccfile.cpp
         cdfile.cpp
@@ -14,7 +15,6 @@ opents_add_test(MixOrder
         file.cpp
         file_posix.cpp
         file_win.cpp
-        dbgprint.cpp
         buff.cpp
         crc.cpp
         cstraw.cpp
@@ -32,7 +32,16 @@ opents_add_test(MixOrder
         xpipe.cpp
         xstraw.cpp
     INCLUDES ${OPENTS_GENERATED_DIR}
-    DEFINITIONS WIN32 _WINDOWS _MBCS NOMINMAX
+    DEFINITIONS NOMINMAX
     UTF8
     DOCTEST
 )
+
+if(OPENTS_POSIX)
+    target_include_directories(MixOrder PRIVATE "${CMAKE_SOURCE_DIR}/code/platform/posix")
+    target_compile_options(MixOrder PRIVATE "-include" "${CMAKE_SOURCE_DIR}/code/platform/posix/wincompat.h")
+    target_sources(MixOrder PRIVATE "${CMAKE_SOURCE_DIR}/code/platform/posix/wincompat.cpp")
+else()
+    target_compile_definitions(MixOrder PRIVATE WIN32 _WINDOWS _MBCS)
+    target_sources(MixOrder PRIVATE "${CMAKE_SOURCE_DIR}/code/dbgprint.cpp")
+endif()

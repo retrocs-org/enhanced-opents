@@ -55,3 +55,8 @@ std::string Screenshot_Name(char const * filename);
 
 std::vector<std::string> Parse_Search_Folders(char const * list);
 std::vector<std::string> Search_Files(char const * pattern);
+
+
+#if !defined(_WIN32) && !defined(_DEMO)
+void Report_Missing_Game_Data(char const * archive);
+#endif

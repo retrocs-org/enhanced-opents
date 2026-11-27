@@ -46,6 +46,7 @@ void Title_Screen_Restore(bool force=false);
 void Init_Campaigns(void);
 
 class CampaignClass;
+class Point2D;
 
 bool Campaign_Available(CampaignClass * campaign);
 
@@ -63,7 +64,7 @@ SideType Prep_Speech_For_Side_Or_First(SideType side);
 
 void Anim_Init(void);
 
-void Load_Title_Page(const char * name, bool visible);
+void Load_Title_Page(const char * name, bool visible, Point2D * size = nullptr);
 
 ThemeType Fetch_Main_Menu_Theme(void);
 ThemeType Fetch_Map_Select_Theme(void);

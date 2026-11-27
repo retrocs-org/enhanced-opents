@@ -22,6 +22,7 @@ SOURCE_ROOT = HERE.parent.parent / "code"
 
 BIGOBJ_CLASS_ID = bytes.fromhex("c7a1bad1eebaa94baf20faf66aa4dcb8")
 STORAGE_EXTERNAL = 2
+MACHO64_MAGIC = b"\xcf\xfa\xed\xfe"
 
 
 class CheckError(Exception):
@@ -35,7 +36,9 @@ class ObjectSymbols:
 
 
 def read_object_symbols(data: bytes, name: str = "object") -> ObjectSymbols:
-    """Returns the external symbols a COFF object defines and the ones it leaves undefined."""
+    """Returns the external symbols an object defines and the ones it leaves undefined."""
+    if data.startswith(MACHO64_MAGIC):
+        return read_macho_symbols(data, name)
     if len(data) < 20:
         raise CheckError(f"{name}: too short to be an object file")
     sig1, sig2 = struct.unpack_from("<HH", data, 0)
@@ -75,12 +78,59 @@ def read_object_symbols(data: bytes, name: str = "object") -> ObjectSymbols:
     return result
 
 
+def read_macho_symbols(data: bytes, name: str) -> ObjectSymbols:
+    if len(data) < 32:
+        raise CheckError(f"{name}: truncated Mach-O header")
+
+    file_type, commands, command_bytes = struct.unpack_from("<III", data, 12)
+    if file_type != 1:  # MH_OBJECT
+        raise CheckError(f"{name}: not a Mach-O object file")
+    end = 32 + command_bytes
+    offset = 32
+    for _ in range(commands):
+        if offset + 8 > min(end, len(data)):
+            raise CheckError(f"{name}: truncated Mach-O load command")
+        kind, size = struct.unpack_from("<II", data, offset)
+        if size < 8 or offset + size > min(end, len(data)):
+            raise CheckError(f"{name}: invalid Mach-O load command")
+        if kind == 2:  # LC_SYMTAB
+            if size < 24:
+                raise CheckError(f"{name}: truncated Mach-O symbol table command")
+            table, count, strings, string_size = struct.unpack_from("<IIII", data, offset + 8)
+            break
+        offset += size
+    else:
+        # A platform-guarded translation unit can compile to an empty object.
+        return ObjectSymbols()
+
+    record = struct.Struct("<IBBHQ")
+    string_end = strings + string_size
+    if table + count * record.size > len(data) or string_end > len(data):
+        raise CheckError(f"{name}: invalid Mach-O symbol table")
+
+    result = ObjectSymbols()
+    for index in range(count):
+        start, kind, _section, _description, value = record.unpack_from(data, table + index * record.size)
+        if kind & 0xE0 or not kind & 1:  # Skip debug entries and local symbols.
+            continue
+        symbol_end = data.find(b"\0", strings + start, string_end)
+        if symbol_end < 0:
+            raise CheckError(f"{name}: invalid Mach-O symbol name")
+        symbol = data[strings + start:symbol_end].decode("latin-1")
+        if kind & 0x0E or value:
+            result.defined.add(symbol)
+        else:
+            result.undefined.add(symbol)
+    return result
+
+
 @dataclass
 class LayerTable:
     uses: dict[str, set[str]]
     file_layer: dict[str, str]
     directory_layer: dict[str, str]
     excluded: list[str]
+    posix_only: list[str]
 
 
 def load_table(path: Path) -> LayerTable:
@@ -102,10 +152,12 @@ def load_table(path: Path) -> LayerTable:
     for directory, name in directory_layer.items():
         if name not in uses:
             raise CheckError(f"{path.name}: directory '{directory}' names unknown layer '{name}'")
-    return LayerTable(uses, file_layer, directory_layer, list(raw.get("exclude", [])))
+    return LayerTable(
+        uses, file_layer, directory_layer, list(raw.get("exclude", [])), list(raw.get("posix_only", []))
+    )
 
 
-def assign_sources(table: LayerTable, source_root: Path) -> dict[str, str]:
+def assign_sources(table: LayerTable, source_root: Path, *, posix: bool = True) -> dict[str, str]:
     """Maps each engine source stem to its layer. Raises when the table and the sources disagree."""
     problems: list[str] = []
     result: dict[str, str] = {}
@@ -133,6 +185,8 @@ def assign_sources(table: LayerTable, source_root: Path) -> dict[str, str]:
             result[stem] = by_directory
         else:
             problems.append(f"{relative} has no layer; add '{stem}' to a files list in layers.toml")
+        if not posix and any(relative.startswith(prefix + "/") for prefix in table.posix_only):
+            result.pop(stem, None)
     for stem, layer in sorted(table.file_layer.items()):
         if stem not in seen:
             problems.append(f"layers.toml lists '{stem}' under '{layer}', but no such source exists")
@@ -209,7 +263,7 @@ def collect_objects(args: argparse.Namespace) -> list[Path]:
         directory = Path(args.objects)
         if not directory.is_dir():
             raise CheckError(f"{directory} is not a directory")
-        paths += sorted(directory.glob("*.obj")) + sorted(directory.glob("*.o"))
+        paths += sorted(directory.rglob("*.obj")) + sorted(directory.rglob("*.o"))
     if not paths:
         raise CheckError("no object files given; pass --objects <dir> or --objects-list <file>")
     return paths
@@ -225,11 +279,17 @@ def summarize(violations: dict[str, set[str]]) -> str:
 
 def run(args: argparse.Namespace) -> int:
     table = load_table(Path(args.table))
-    layer_of = assign_sources(table, Path(args.source_root))
+    paths = collect_objects(args)
+    first_object = next((path for path in paths if object_stem(path) is not None and path.is_file()), None)
+    posix = False
+    if first_object is not None:
+        with first_object.open("rb") as handle:
+            posix = handle.read(4) == MACHO64_MAGIC
+    layer_of = assign_sources(table, Path(args.source_root), posix=posix)
 
     objects: dict[str, ObjectSymbols] = {}
     missing: list[str] = []
-    for path in collect_objects(args):
+    for path in paths:
         stem = object_stem(path)
         if stem not in layer_of:
             continue

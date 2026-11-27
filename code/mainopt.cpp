@@ -54,13 +54,14 @@ static void Display_Options_Dialog(void);
 /// out when the player leaves.
 /// </summary>
 /// <remarks>Game logic is suspended for the duration of this routine.</remarks>
-void Main_Options_Dialog(void)
+bool Main_Options_Dialog(void)
 {
 	bool old_game_active = GameActive;
 	GameActive = false;
 
 	while (true) {
-		switch (UI_Main_Options_Dialog()) {
+		auto const choice = UI_Main_Options_Dialog();
+		switch (choice) {
 			case UI_MAIN_OPTIONS_SOUND:
 				SoundControlsClass().Dialog();
 				break;
@@ -80,7 +81,7 @@ void Main_Options_Dialog(void)
 			default:
 				Options.Save_Settings();
 				GameActive = old_game_active;
-				return;
+				return(choice == UI_MAIN_OPTIONS_MAP_EDITOR);
 		}
 	}
 }
@@ -91,21 +92,26 @@ void Main_Options_Dialog(void)
 /// Every drawing surface is destroyed and recreated at the new size, so any pointer held
 /// across this call is stale.
 /// </summary>
-/// <param name="width">The width to render at.</param>
-/// <param name="height">The height to render at.</param>
+/// <param name="requested_width">The selected display mode width.</param>
+/// <param name="requested_height">The selected display mode height.</param>
 /// <returns>bool; Was the mode changed? If not, nothing has been disturbed.</returns>
-bool Change_Display_Mode(int width, int height)
+bool Change_Display_Mode(int requested_width, int requested_height)
 {
 	DebugString("About to set video mode\n");
 
+	int width = requested_width;
+	int height = requested_height;
+
 	Hide_Mouse();
 
+	Video_Gameplay_Size(width, height);
 	if (!Video_Set_Mode(width, height)) {
 		DebugString("Video_Set_Mode failed.\n");
 		Show_Mouse();
 		return(false);
 		}
 
+	Video_Set_HUD_Scale(requested_width, requested_height);
 	VisibleRect = Rect(0, 0, width, height);
 	DebugString("VisibleRect: %dx%d\n", width, height);
 
@@ -152,16 +158,16 @@ bool Change_Display_Mode(int width, int height)
 	 */
 	if (WindowedMode && Options.WindowWidth <= 0 && Options.WindowHeight <= 0) {
 		// The window grows about its middle, so the picture stays where the player was looking.
-		Main_Window_Resize(width, height);
+		Main_Window_Resize(requested_width, requested_height);
 	}
 
 	Rect temp = VisibleRect;
 	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : SidebarClass::SIDE_WIDTH);
 	temp.Y = 16;
-	temp.Width -= SidebarClass::SIDE_WIDTH;
+	temp.Width -= Video_Sidebar_Width();
 	temp.Height -= 16;
 
-	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
+	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, Video_Sidebar_Height()));
 	LogicalSurface = HiddenSurface;
 
 	Map.Set_View_Dimensions(temp);

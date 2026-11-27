@@ -13,7 +13,10 @@
 
 #include "_keyboar.h"
 #include "_map.h"
+#include "_rect.h"
 #include "_surface.h"
+#include "_tactica.h"
+
 #include "_tooltip.h"
 #include "_ui.h"
 #include "_xmouse.h"
@@ -25,6 +28,7 @@
 #include "misc.h"
 #include "movies.h"
 #include "queue.h"
+#include "scenario.h"
 #include "sdl/sdlwindow.h"
 #include "session.h"
 #include "ui/rml/rmltexture.h"
@@ -38,9 +42,14 @@
 
 #include <commctrl.h>
 
+#include <algorithm>
+#include <cmath>
+
 
 static bool _HandlingMouseWheel = false;
 static bool _InterfaceTookKey = false;
+static double _PendingPan[2] = {};
+static unsigned int _LastPanUpdate = 0;
 
 
 static bool Is_Mouse_Event(WindowEventType type)
@@ -79,7 +88,9 @@ static void On_Paint(bool update_surface)
 {
 	if (update_surface) {
 		if (MouseCursor != NULL && VisibleSurface != NULL && HiddenSurface != NULL && CompositeSurface != NULL) {
-			if (ScenarioActive == true) {
+			if (Scen != nullptr && Scen->IsReadingScenario) {
+				Update_Visible_Surface(HiddenSurface);
+			} else if (ScenarioActive == true) {
 				Map.Blit_Sidebar(true);
 				Update_Visible_Surface(CompositeSurface);
 			} else if (Movie_Is_Playing() == true) {
@@ -108,6 +119,62 @@ static void On_Mouse_Wheel(int delta)
 	_HandlingMouseWheel = true;
 	Execute_Command(delta < 0 ? "SidebarDown" : "SidebarUp");
 	_HandlingMouseWheel = false;
+}
+
+
+void Game_Window_Cancel_Trackpad_Pan()
+{
+	_PendingPan[0] = _PendingPan[1] = 0.0;
+	_LastPanUpdate = 0;
+}
+
+
+static bool Can_Pan_Map()
+{
+	return(GameInFocus && GameActive && ScenarioActive && ScenarioInit == 0
+		&& TacticalMap != nullptr && SpecialDialog == SDLG_NONE && !Movie_Is_Playing());
+}
+
+
+static bool Pan_Map(WindowEvent const & event)
+{
+	if (!event.PreciseScroll || !Can_Pan_Map() || !TacticalRect.Is_Point_Within(Point2D(event.X, event.Y))) {
+		Game_Window_Cancel_Trackpad_Pan();
+		return(false);
+	}
+
+	auto const & scale = Video_Get_Scale_Info();
+	double const pixels = event.PreciseScrollPixels / std::max(0.1f, event.Horizontal ? scale.ScaleX : scale.ScaleY);
+	_PendingPan[event.Horizontal ? 0 : 1] += event.Horizontal ? pixels : -pixels;
+	return(true);
+}
+
+
+bool Game_Window_Update_Trackpad_Pan()
+{
+	if (std::abs(_PendingPan[0]) < 1.0 && std::abs(_PendingPan[1]) < 1.0) return(false);
+	if (!Can_Pan_Map()) {
+		Game_Window_Cancel_Trackpad_Pan();
+		return(false);
+	}
+
+	unsigned int const now = timeGetTime();
+	unsigned int const elapsed = _LastPanUpdate == 0 ? Video_Present_Interval() : std::min(now - _LastPanUpdate, 50u);
+	_LastPanUpdate = now;
+	if (elapsed == 0) return(false);
+
+	double const fraction = 1.0 - std::exp(-static_cast<double>(elapsed) / 13.0);
+	auto move_axis = [fraction](double & pending, FacingType negative, FacingType positive) {
+		double const magnitude = std::abs(pending);
+		if (magnitude < 1.0) return(false);
+		int distance = magnitude < 3.0 ? static_cast<int>(magnitude) : std::max(1, static_cast<int>(magnitude * fraction));
+		Map.Scroll_Map(pending < 0.0 ? negative : positive, distance, true);
+		pending -= std::copysign(static_cast<double>(distance), pending);
+		return(true);
+	};
+	bool const moved_x = move_axis(_PendingPan[0], FACING_W, FACING_E);
+	bool const moved_y = move_axis(_PendingPan[1], FACING_N, FACING_S);
+	return(moved_x || moved_y);
 }
 
 
@@ -148,6 +215,9 @@ static bool Handle_Event(WindowEvent const & event)
 		return(true);
 	}
 
+	if (taken || event.Type == WINDOW_EVENT_FOCUS_LOST) {
+		Game_Window_Cancel_Trackpad_Pan();
+	}
 	if (taken) {
 		return(true);
 	}
@@ -189,7 +259,7 @@ static bool Handle_Event(WindowEvent const & event)
 			break;
 
 		case WINDOW_EVENT_MOUSE_WHEEL:
-			if (!event.Horizontal) {
+			if (!Pan_Map(frame) && !event.Horizontal) {
 				On_Mouse_Wheel(event.Wheel < 0.0f ? -1 : 1);
 			}
 			break;

@@ -11,12 +11,43 @@
 
 #include <lzo/lzo1x.h>
 
+#include "dbgprint.h"
+
+#include <barrier>
+#include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <thread>
 #include <vector>
 
-static std::string Scratch;
+static thread_local std::string SaveLog;
+
+
+void __cdecl DebugString(char const * format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	char message[4096];
+	std::vsnprintf(message, sizeof(message), format, args);
+	va_end(args);
+	SaveLog = message;
+}
+
+
+#ifdef _WIN32
+char const * Last_Error_Text(uint32_t error)
+{
+	static thread_local char message[256];
+	if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr, error, 0, message, sizeof(message), nullptr)) return(message);
+	return("");
+}
+#endif
+
+
+static std::filesystem::path Scratch;
 
 static void Check_Result(char const * name, SaveFileClass::ResultType actual, SaveFileClass::ResultType expected)
 {
@@ -27,7 +58,7 @@ static void Check_Result(char const * name, SaveFileClass::ResultType actual, Sa
 
 static std::string Scratch_Path(char const * name)
 {
-	return(Scratch + "\\" + name);
+	return((Scratch / name).string());
 }
 
 
@@ -142,24 +173,19 @@ static void Check_Fields(char const * prefix, SaveFileClass const & save)
 }
 
 
-// The files the cases write, deleted after each one.
-static char const * const ScratchFiles[] = { "ROUNDTRIP.SAV", "NOISE.SAV", "EMPTY.SAV", "REPLACE.SAV",
-	"LIMITS.SAV", "PLAIN.SAV", "GOOD.SAV", "DAMAGED.SAV" };
-
-
 struct SaveFixture
 {
 	SaveFixture(void)
 	{
 		REQUIRE(lzo_init() == LZO_E_OK);
-		Scratch = ".";
+		Scratch = std::filesystem::temp_directory_path() / ("opents-save-" + std::to_string(GetCurrentProcessId()));
+		REQUIRE(std::filesystem::create_directory(Scratch));
 	}
 
 	~SaveFixture(void)
 	{
-		for (char const * name : ScratchFiles) {
-			DeleteFileA(Scratch_Path(name).c_str());
-		}
+		std::error_code error;
+		std::filesystem::remove_all(Scratch, error);
 	}
 };
 
@@ -241,7 +267,7 @@ TEST_CASE_FIXTURE(SaveFixture, "a save with no content is a header alone")
 }
 
 
-TEST_CASE_FIXTURE(SaveFixture, "a save written over another replaces it whole, along with a stale temporary file")
+TEST_CASE_FIXTURE(SaveFixture, "a save replaces the destination without reusing a legacy temporary file")
 {
 	std::string const path = Scratch_Path("REPLACE.SAV");
 
@@ -256,7 +282,7 @@ TEST_CASE_FIXTURE(SaveFixture, "a save written over another replaces it whole, a
 	Fill(second, Noise(20000, 11));
 	second.Set_String(FIELD_TITLE, "the later save");
 	Check_Result("replace: second write", second.Write(path.c_str()), SaveFileClass::RESULT_OK);
-	CHECK_MESSAGE(!File_Exists((path + ".tmp").c_str()), "replace: the stale temporary is gone");
+	CHECK(Read_Whole_File((path + ".tmp").c_str()) == Noise(100, 3));
 
 	SaveFileClass read;
 	Check_Result("replace: read", read.Read(path.c_str()), SaveFileClass::RESULT_OK);
@@ -281,6 +307,80 @@ static void Put_U32(std::vector<unsigned char> & image, std::size_t at, unsigned
 	image[at + 1] = (unsigned char)((value >> 8) & 0xFF);
 	image[at + 2] = (unsigned char)((value >> 16) & 0xFF);
 	image[at + 3] = (unsigned char)((value >> 24) & 0xFF);
+}
+
+
+TEST_CASE_FIXTURE(SaveFixture, "concurrent saves leave a complete image and only their destination")
+{
+	std::string const path = Scratch_Path("REPLACE.SAV");
+	SaveFileClass first;
+	Fill(first, Noise(512000, 7));
+	first.Set_String(FIELD_TITLE, "first");
+	SaveFileClass second;
+	Fill(second, Noise(512000, 13));
+	second.Set_String(FIELD_TITLE, "second");
+
+	std::barrier start(2);
+	SaveFileClass::ResultType first_result;
+	std::jthread writer([&] {
+		start.arrive_and_wait();
+		first_result = first.Write(path.c_str());
+	});
+	start.arrive_and_wait();
+	SaveFileClass::ResultType const second_result = second.Write(path.c_str());
+	writer.join();
+	REQUIRE((first_result == SaveFileClass::RESULT_OK || second_result == SaveFileClass::RESULT_OK));
+
+	SaveFileClass read;
+	REQUIRE(read.Read(path.c_str()) == SaveFileClass::RESULT_OK);
+	char title[16];
+	REQUIRE(read.Get_String(FIELD_TITLE, title, sizeof(title)));
+	if (read.Content == first.Content) {
+		CHECK(std::string(title) == "first");
+		CHECK(first_result == SaveFileClass::RESULT_OK);
+	} else {
+		CHECK(read.Content == second.Content);
+		CHECK(std::string(title) == "second");
+		CHECK(second_result == SaveFileClass::RESULT_OK);
+	}
+	for (auto const & entry : std::filesystem::directory_iterator(Scratch)) {
+		CHECK(entry.path() == std::filesystem::path(path));
+	}
+}
+
+
+TEST_CASE_FIXTURE(SaveFixture, "a missing save directory is logged as a temporary-file creation error")
+{
+	std::string const path = Scratch_Path("missing/REPLACE.SAV");
+	SaveFileClass save;
+	Fill(save, Prose(4096));
+
+	SaveLog.clear();
+	CHECK(save.Write(path.c_str()) == SaveFileClass::RESULT_WRITE_FAILED);
+	CHECK(SaveLog.find("create temporary file") != std::string::npos);
+	CHECK(SaveLog.find("OS error 0") == std::string::npos);
+	CHECK(SaveLog.find(path) != std::string::npos);
+}
+
+
+TEST_CASE_FIXTURE(SaveFixture, "a failed final save replacement removes the temporary file")
+{
+	std::string const path = Scratch_Path("REPLACE.SAV");
+	REQUIRE(std::filesystem::create_directory(path));
+	std::string const marker = (std::filesystem::path(path) / "marker").string();
+	REQUIRE(Write_Whole_File(marker.c_str(), { 42 }));
+
+	SaveFileClass replacement;
+	Fill(replacement, Prose(4096));
+	SaveLog.clear();
+	CHECK(replacement.Write(path.c_str()) == SaveFileClass::RESULT_WRITE_FAILED);
+	CHECK(SaveLog.find("replace destination") != std::string::npos);
+	CHECK(SaveLog.find("OS error ") != std::string::npos);
+	CHECK(SaveLog.find(path) != std::string::npos);
+	for (auto const & entry : std::filesystem::directory_iterator(Scratch)) {
+		CHECK(entry.path() == std::filesystem::path(path));
+	}
+	CHECK(Read_Whole_File(marker.c_str()) == std::vector<unsigned char>{ 42 });
 }
 
 

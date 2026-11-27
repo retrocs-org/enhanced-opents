@@ -80,6 +80,23 @@ class ObjectReaderTests(unittest.TestCase):
         symbols = CHECK.read_object_symbols(make_object(["kept"], [], statics=["hidden"]))
         self.assertEqual(symbols.defined, {"kept"})
 
+    def test_reads_64_bit_mach_o_external_symbols(self) -> None:
+        names = b"\0_defined\0_wanted\0_local\0"
+        header = CHECK.MACHO64_MAGIC + struct.pack("<7I", 0x0100000C, 0, 1, 1, 24, 0, 0)
+        records = b"".join(
+            struct.pack("<IBBHQ", start, kind, section, 0, 0)
+            for start, kind, section in ((1, 0x0F, 1), (10, 0x01, 0), (18, 0x0E, 1))
+        )
+        command = struct.pack("<6I", 2, 24, 56, 3, 56 + len(records), len(names))
+
+        symbols = CHECK.read_object_symbols(header + command + records + names)
+        self.assertEqual(symbols.defined, {"_defined"})
+        self.assertEqual(symbols.undefined, {"_wanted"})
+
+    def test_mach_o_empty_translation_unit_has_no_symbols(self) -> None:
+        header = CHECK.MACHO64_MAGIC + struct.pack("<7I", 0x01000007, 0, 1, 0, 0, 0, 0)
+        self.assertEqual(CHECK.read_object_symbols(header), CHECK.ObjectSymbols())
+
     def test_rejects_an_object_without_a_symbol_table(self) -> None:
         data = struct.pack("<HHHHI", 0, 0xFFFF, 1, 0x8664, 0) + bytes(44)
         with self.assertRaises(CHECK.CheckError):
@@ -163,6 +180,12 @@ class CheckTests(unittest.TestCase):
         code, output = self.run_check()
         self.assertEqual(code, 2)
         self.assertIn("lists 'techno'", output)
+
+    def test_coff_build_omits_posix_only_sources(self) -> None:
+        table = 'posix_only = ["ui"]\n' + TABLE
+        (self.root / "layers.toml").write_text(table, encoding="utf-8")
+        (self.objects / "uimenu.obj").unlink()
+        self.assertEqual(self.run_check(), (0, ""))
 
     def test_source_without_an_object_fails(self) -> None:
         (self.objects / "techno.obj").unlink()

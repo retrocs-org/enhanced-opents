@@ -17,3 +17,5 @@ void Game_Window_Begin_Shutdown(void);
 void Game_Window_Close(void);
 
 void Game_Window_Handle_Event(WindowEvent const & event);
+bool Game_Window_Update_Trackpad_Pan();
+void Game_Window_Cancel_Trackpad_Pan();

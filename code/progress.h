@@ -18,6 +18,8 @@
 
 class ShapeSet;
 
+class VideoPresentationScope;
+
 class ProgressScreenClass
 {
 	public:
@@ -41,7 +43,7 @@ class ProgressScreenClass
 
 		int Get_Bar_Width(void) const;
 
-		void Set_Graphic_Data(const char * progbar, const char * background = NULL, const char * string = NULL, Point2D pt=Point2D(-1,-1));
+		void Set_Graphic_Data(const char * progbar, const char * background = NULL, const char * string = NULL, Point2D pt=Point2D(-1,-1), VideoPresentationScope * presentation = nullptr);
 		void Display_Progress(Point2D pt = Point2D(-1,-1));
 
 		void Begin_Dialog(void);

@@ -36,6 +36,7 @@
 #include "dialog.h"
 #include "dsurface.h"
 #include "fog.h"
+#include "gamewindow.h"
 #include "globals.h"
 #include "goptions.h"
 #include "ipxmgr.h"
@@ -57,6 +58,7 @@
 #include "savemgr.h"
 #include "scenario.h"
 #include "scheme.h"
+#include "sdl/sdlwindow.h"
 #include "session.h"
 #include "statehash.h"
 #include "stats.h"
@@ -224,7 +226,7 @@ static void Finish_Decided_Game(void)
 
 
 /// <summary>
-/// The frame rate the loop is held to, or zero for no limit.
+/// The target rate for simulation frames.
 /// </summary>
 static int Target_Frame_Rate(void)
 {
@@ -324,7 +326,14 @@ bool Main_Loop(void)
 			Ipx.Store_Stats();
 		}
 		Update_Fogged_Objects();
+#ifdef __APPLE__
+		if (Video_Presentation_Due()) {
+			if (Game_Window_Update_Trackpad_Pan()) TacticalMap->AI();
+			Map.Render();
+		}
+#else
 		Map.Render();
+#endif
 	}
 
 	drag_select_aborted = false;
@@ -557,14 +566,28 @@ void Sync_Delay(void)
 	*/
 	SpareTicks += FrameTimer;
 
+#ifdef __APPLE__
+	unsigned int last_event_pump = timeGetTime();
+#endif
 	while (FrameTimer) {
 		Call_Back();
 		if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
 			KeyNumType input = KN_NONE;
 			int x, y;
-			if (FrameTimer > 10) {
+#ifdef __APPLE__
+			unsigned int const now = timeGetTime();
+			if (now - last_event_pump >= 2) {
+				Main_Window_Pump_Events();
+				last_event_pump = now;
+			}
+			bool const redraw = GameInFocus && SpecialDialog == SDLG_NONE && Video_Presentation_Due();
+#else
+			bool const redraw = Video_Present_Interval() < 16 ? Video_Presentation_Due() : FrameTimer > 10;
+#endif
+			if (redraw) {
 				Map.Input(input, x, y);
 				Keyboard_Process(input);
+				Game_Window_Update_Trackpad_Pan();
 				TacticalMap->AI();
 				Map.Render();
 			} else {
@@ -574,6 +597,7 @@ void Sync_Delay(void)
 				break;
 			}
 		} else {
+			Game_Window_Cancel_Trackpad_Pan();
 			UI_Serve_Screen();
 		}
 

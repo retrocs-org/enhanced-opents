@@ -16,6 +16,9 @@
 #include "sdl/sdlinput.h"
 #include "sdl/sdlkeys.h"
 #include "win.h"
+#ifndef _WIN32
+#include "posixpaths.h"
+#endif
 
 #if defined(_WIN32)
 #include <commctrl.h>
@@ -26,6 +29,10 @@
 #include <SDL3/SDL_main.h>
 #if defined(__APPLE__)
 #include <SDL3/SDL_metal.h>
+
+void * Mac_Start_Precise_Scroll(SDL_Window * window, Uint32 event_type);
+void Mac_Stop_Precise_Scroll(void * monitor);
+int Mac_Window_Refresh_Rate(SDL_Window * window, int fallback);
 #endif
 
 #include <algorithm>
@@ -43,6 +50,10 @@ SDL_Window * _Window = nullptr;
 int _NativeModals = 0;
 bool _Watching = false;
 bool _Unattended = false;
+#ifdef __APPLE__
+void * _PreciseScrollMonitor = nullptr;
+Uint32 _PreciseScrollEvent = 0;
+#endif
 
 SDLInputStateClass _Input;
 
@@ -208,6 +219,20 @@ void Handle_SDL_Event(SDL_Event const & sdlevent)
 		return;
 	}
 
+	if (sdlevent.type == SDL_EVENT_PINCH_UPDATE) {
+		if (_Window == nullptr || (sdlevent.pinch.windowID != 0 && sdlevent.pinch.windowID != SDL_GetWindowID(_Window))) return;
+		float x, y;
+		SDL_GetMouseState(&x, &y);
+		float const density = Pixel_Density();
+		WindowEvent event;
+		event.Type = WINDOW_EVENT_PINCH;
+		event.X = static_cast<int>(std::lround(x * density));
+		event.Y = static_cast<int>(std::lround(y * density));
+		event.PinchScale = sdlevent.pinch.scale;
+		Dispatch(event);
+		return;
+	}
+
 	_Input.Drop_Released_Keys();
 
 	// Windows' key state is stale once the focus has gone elsewhere.
@@ -229,8 +254,22 @@ void Handle_SDL_Event(SDL_Event const & sdlevent)
 	}
 
 	std::vector<WindowEvent> events;
+#ifdef __APPLE__
+	bool const precise_scroll = _PreciseScrollEvent != 0 && sdlevent.type == _PreciseScrollEvent;
+	SDL_Event translated = sdlevent;
+	if (precise_scroll) translated.type = SDL_EVENT_MOUSE_WHEEL;
+	Window_Events_From_SDL(translated, Pixel_Density(), _Input.Modifiers(), events);
+#else
 	Window_Events_From_SDL(sdlevent, Pixel_Density(), _Input.Modifiers(), events);
+#endif
 	for (WindowEvent & event : events) {
+#ifdef __APPLE__
+		event.PreciseScroll = precise_scroll;
+		if (precise_scroll) event.PreciseScrollPixels = event.Wheel * 10.0f * Pixel_Density();
+		if (event.Type == WINDOW_EVENT_FOCUS_GAINED) {
+			event.FocusClickThrough = SDL_GetHintBoolean(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, false);
+		}
+#endif
 		if (event.Type == WINDOW_EVENT_KEY_DOWN && continued) {
 			event.Repeat = true;
 		}
@@ -297,6 +336,9 @@ bool Start_SDL(void)
 	}
 
 	Set_Hints();
+#ifdef __APPLE__
+	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+#endif
 
 #if defined(_WIN32)
 	// The window class keeps the game's own name, which tools looking for the window use.
@@ -376,6 +418,9 @@ void Main_Window_Destroy(void)
 #if defined(_WIN32)
 		RemoveWindowSubclass(Window_Handle(), Watch_Messages, WindowSubclass);
 #elif defined(__APPLE__)
+		Mac_Stop_Precise_Scroll(_PreciseScrollMonitor);
+		_PreciseScrollMonitor = nullptr;
+		_PreciseScrollEvent = 0;
 		if (_MetalView != nullptr) {
 			SDL_Metal_DestroyView(_MetalView);
 			_MetalView = nullptr;
@@ -448,6 +493,8 @@ bool Main_Window_Create(bool windowed, int width, int height, MainWindowIcon con
 #if defined(_WIN32)
 	SetWindowSubclass(Window_Handle(), Watch_Messages, WindowSubclass, 0);
 #elif defined(__APPLE__)
+	_PreciseScrollEvent = SDL_RegisterEvents(1);
+	_PreciseScrollMonitor = Mac_Start_Precise_Scroll(_Window, _PreciseScrollEvent);
 	_MetalView = SDL_Metal_CreateView(_Window);
 	if (_MetalView == nullptr) {
 		DebugString("SDL: the Metal view was not created: %s\n", SDL_GetError());
@@ -568,7 +615,12 @@ int Main_Window_Refresh_Rate(void)
 	}
 
 	SDL_DisplayMode const * mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(_Window));
-	return(mode != nullptr ? (int)std::lround(mode->refresh_rate) : 0);
+	int const rate = mode != nullptr ? (int)std::lround(mode->refresh_rate) : 0;
+#ifdef __APPLE__
+	return(Mac_Window_Refresh_Rate(_Window, rate));
+#else
+	return(rate);
+#endif
 }
 
 
@@ -624,7 +676,7 @@ void Main_Window_Request_Repaint(void)
 }
 
 
-// SDL_RaiseWindow would take the foreground from another program.
+// On macOS, Cocoa restores focus when the player returns to the game window.
 void Main_Window_Take_Focus(void)
 {
 #if defined(_WIN32)
@@ -632,7 +684,7 @@ void Main_Window_Take_Focus(void)
 	if (window != NULL) {
 		SetFocus(window);
 	}
-#else
+#elif !defined(__APPLE__)
 	if (_Window != nullptr) {
 		SDL_RaiseWindow(_Window);
 	}
@@ -899,4 +951,83 @@ bool Main_Window_Confirm_Box(char const * title, char const * text, char const *
 	}
 	End_Native_Modal();
 	return(!shown || button == 1);
+}
+
+std::string Main_Window_Frontier_Briefing()
+{
+	char const * configured = SDL_getenv("OPENTS_WDT_API");
+	std::string endpoint = configured ? configured : "";
+	std::string briefing = "Set OPENTS_WDT_API to the HTTPS address of the OpenTS campaign API.";
+	if (endpoint.starts_with("https://") && endpoint.find_first_of("?#\r\n") == std::string::npos) {
+		briefing = "Frontier is unavailable. Check the campaign address and try again.";
+		endpoint += "?route=theater&format=briefing";
+#ifdef _WIN32
+		char directory[MAX_PATH];
+		auto const length = GetSystemDirectoryA(directory, sizeof(directory));
+		std::string curl = length > 0 && length < sizeof(directory) ? std::string(directory, length) + "\\curl.exe" : "";
+#else
+		std::string const curl = "/usr/bin/curl";
+#endif
+		char const * command[] = {curl.c_str(), "--disable", "--silent", "--fail", "--globoff",
+			"--proto", "=https", "--max-time", "4", "--max-filesize", "4096", "--url", endpoint.c_str(), nullptr};
+		if (!curl.empty()) {
+			if (auto * child = SDL_CreateProcess(command, true)) {
+				std::size_t size = 0;
+				int code = -1;
+				auto * data = static_cast<char *>(SDL_ReadProcess(child, &size, &code));
+				if (data && code == 0 && size <= 4096 && std::string_view(data, size).starts_with("FRONTIER"))
+					briefing.assign(data, size);
+				SDL_free(data);
+				SDL_DestroyProcess(child);
+			}
+		}
+	}
+	return(briefing);
+}
+
+
+struct MainChildProcess
+{
+	SDL_Process * Handle;
+};
+
+
+MainChildProcess * Main_Start_Game_Process(char const * const * arguments)
+{
+	std::string executable;
+#ifdef _WIN32
+	wchar_t path[32768];
+	DWORD const length = GetModuleFileNameW(nullptr, path, static_cast<DWORD>(std::size(path)));
+	if (length == 0 || length >= std::size(path)) return(nullptr);
+	int const size = WideCharToMultiByte(CP_UTF8, 0, path, length, nullptr, 0, nullptr, nullptr);
+	if (size <= 0) return(nullptr);
+	executable.resize(size);
+	WideCharToMultiByte(CP_UTF8, 0, path, length, executable.data(), size, nullptr, nullptr);
+#else
+	executable = Posix_Executable_Path();
+#endif
+	if (executable.empty()) return(nullptr);
+	std::vector<char const *> command{executable.c_str()};
+	for (; *arguments; ++arguments) command.push_back(*arguments);
+	command.push_back(nullptr);
+	auto * child = SDL_CreateProcess(command.data(), false);
+	return(child ? new MainChildProcess{child} : nullptr);
+}
+
+
+bool Main_Poll_Game_Process(MainChildProcess * child, int & exitcode)
+{
+	return(SDL_WaitProcess(child->Handle, false, &exitcode));
+}
+
+
+void Main_Stop_Game_Process(MainChildProcess * child)
+{
+	if (!child) return;
+	if (!SDL_WaitProcess(child->Handle, false, nullptr)) {
+		SDL_KillProcess(child->Handle, true);
+		SDL_WaitProcess(child->Handle, true, nullptr);
+	}
+	SDL_DestroyProcess(child->Handle);
+	delete child;
 }

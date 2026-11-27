@@ -10,6 +10,7 @@
 #include "always.h"
 
 #include "progress.h"
+#include "video.h"
 
 #include "_convert.h"
 #include "_mixfile.h"
@@ -133,14 +134,18 @@ void ProgressScreenClass::End(void)
 /// one.</param>
 /// <param name="string">The caption to print above the bars, or NULL for none.</param>
 /// <param name="pt">The center of the bars, or Point2D(-1,-1) to center them on the screen.</param>
-void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * background, const char * string, Point2D pt)
+void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * background, const char * string, Point2D pt, VideoPresentationScope * presentation)
 {
 	Rect rect;
 
 	String = string;
 	if (background != NULL) {
 		Background = background;
-		Load_Title_Page(Background, false);
+		Point2D size(0, 0);
+		Load_Title_Page(Background, false, &size);
+		if (presentation != nullptr) {
+			presentation->Set(size.X, size.Y);
+		}
 	}
 
 	ColorScheme * scheme = Fetch_Scheme_By_Name("Yellow");

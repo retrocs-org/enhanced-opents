@@ -145,13 +145,20 @@ UIImageResult UI_Load_Image(char const * name, std::vector<unsigned char> & rgba
 		return(UI_IMAGE_LOADED);
 	}
 
+	return(UI_Decode_Raster(name, encoded, rgba, width, height, premultiply) ? UI_IMAGE_LOADED : UI_IMAGE_UNREADABLE);
+}
+
+
+bool UI_Decode_Raster(char const * name, std::span<unsigned char const> encoded, std::vector<unsigned char> & rgba,
+	int & width, int & height, bool premultiply)
+{
 	int channels = 0;
 	unsigned char * pixels = stbi_load_from_memory(encoded.data(), (int)encoded.size(), &width, &height, &channels, 4);
 	if (pixels == NULL) {
 		DebugString("UI: %s did not decode: %s\n", name, stbi_failure_reason());
 		width = 0;
 		height = 0;
-		return(UI_IMAGE_UNREADABLE);
+		return(false);
 	}
 
 	rgba.assign(pixels, pixels + (size_t)width * (size_t)height * 4);
@@ -166,5 +173,5 @@ UIImageResult UI_Load_Image(char const * name, std::vector<unsigned char> & rgba
 		}
 	}
 
-	return(UI_IMAGE_LOADED);
+	return(true);
 }

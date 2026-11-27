@@ -17,9 +17,41 @@
 
 #include <cstring>
 
+#ifdef __APPLE__
+#include <cerrno>
+#include <limits.h>
+#include <string>
+#include <sys/attr.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 #ifndef _WIN32
 static void Resolve_File_Single(char * fname)
 {
+#ifdef __APPLE__
+	if (*fname != '\0' && strpbrk(fname, "*?[") == nullptr) {
+		struct attrlist attributes = {};
+		attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
+		attributes.commonattr = ATTR_CMN_NAME;
+
+		struct {
+			uint32_t Size;
+			attrreference_t Name;
+			char Storage[NAME_MAX + 1];
+		} entry;
+
+		if (getattrlist(fname, &attributes, &entry, sizeof(entry), FSOPT_NOFOLLOW) == 0) {
+			char * basename = strrchr(fname, '/');
+			basename = basename != nullptr ? basename + 1 : fname;
+			if (entry.Name.attr_length == strlen(basename) + 1) {
+				char const * name = reinterpret_cast<char const *>(&entry.Name) + entry.Name.attr_dataoffset;
+				memcpy(basename, name, entry.Name.attr_length);
+			}
+			return;
+		}
+	}
+#endif
 	Find_File_Data * ffblk;
 
 	ffblk = Find_File_Data::CreateFindData();
@@ -41,6 +73,26 @@ static void Resolve_File_Single(char * fname)
 void Resolve_File(char * fname)
 {
 #ifndef _WIN32
+#ifdef _PC_CASE_SENSITIVE
+	if (strpbrk(fname, "*?[") == nullptr) {
+		struct stat info;
+		if (lstat(fname, &info) != 0 && errno == ENOENT) {
+			std::string parent(fname);
+			for (;;) {
+				auto const slash = parent.find_last_of('/');
+				if (slash == std::string::npos) {
+					parent = ".";
+				} else {
+					parent.resize(slash == 0 ? 1 : slash);
+				}
+
+				long const case_sensitive = pathconf(parent.c_str(), _PC_CASE_SENSITIVE);
+				if (case_sensitive == 0) return;
+				if (case_sensitive != -1 || errno != ENOENT || parent == "/" || parent == ".") break;
+			}
+		}
+	}
+#endif
 	// step through each sub-directory before going for the win
 	char * next = fname;
 	while (next = strchr(next, '/')) {

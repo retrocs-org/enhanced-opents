@@ -161,8 +161,9 @@ void GraphicMenu::Set_Item_Enabled(int id, bool enabled)
 /// highlighting whichever item the player is pointing at, until an item is chosen.
 /// The chosen item performs its action before control is handed back.
 /// </summary>
-/// <returns>Returns with the identifier of the menu item the player chose.</returns>
-int GraphicMenu::Presentation(void)
+/// <param name="leave">Returns true when an overlay choice should close the menu.</param>
+/// <returns>The chosen item identifier, or -1 when the overlay closes the menu.</returns>
+int GraphicMenu::Presentation(std::function<bool()> const & leave)
 {
 	Theme.Play_Song(Theme.From_Name(ThemeName.Peek()));
 
@@ -218,6 +219,10 @@ int GraphicMenu::Presentation(void)
 		}
 
 		UIShell.Tick();
+		if (leave && leave()) {
+			item = nullptr;
+			break;
+		}
 
 		Engine.Wait_Delay(1);
 	}

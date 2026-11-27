@@ -39,7 +39,8 @@ class UIShellHostClass
 		virtual void Play_Sample(char const * name, float volume) = 0;
 		virtual void Play_Click(void) = 0;
 		virtual bool Animate_Screens(void) const = 0;
-		virtual int Art_Magnification(void) const = 0;
+		virtual float Menu_Scale(float base) const { return(base); }
+		virtual int Art_Magnification(float ratio) const = 0;
 		virtual bool Bitmap_System_Font(void) const = 0;
 		virtual bool Developer_Keys_Armed(void) const = 0;
 		virtual void Clear_Keyboard_Queue(void) = 0;

@@ -109,6 +109,7 @@
 #include "session.h"
 #include "side.h"
 #include "sidebar.h"
+#include "video.h"
 #include "smudtype.h"
 #include "statehash.h"
 #include "stats.h"
@@ -755,10 +756,10 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 	Rect temp = VisibleRect;
 	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : SidebarClass::SIDE_WIDTH);
 	temp.Y = 16;
-	temp.Width -= SidebarClass::SIDE_WIDTH;
+	temp.Width -= Video_Sidebar_Width();
 	temp.Height -= 16;
 
-	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
+	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, Video_Sidebar_Height()));
 
 	Map.Set_View_Dimensions(temp);
 

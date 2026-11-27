@@ -27,6 +27,9 @@ enum VideoScaleMode {
 // Drawable dimensions and the destination rectangle are measured in physical pixels.
 struct VideoScaleInfo
 {
+	bool MenuPresentation;
+	int SourceX;
+	int SourceY;
 	int GameWidth;
 	int GameHeight;
 	int DrawableWidth;
@@ -43,7 +46,31 @@ struct VideoScaleInfo
 bool Video_Init(NativeWindow const & window, int drawablewidth, int drawableheight, int refreshrate);
 void Video_Shutdown(void);
 
+inline constexpr int GameplayUIScalePresets[] = {0, 75, 100, 125, 150};
+int Video_Gameplay_UI_Scale();
+int Video_Gameplay_Graphics_Scale();
+void Video_Set_HUD_Scale(int width, int height);
+int Video_Sidebar_Width();
+int Video_Sidebar_Height();
+int Video_Menu_UI_Size();
+void Video_Gameplay_Size(int & width, int & height);
 bool Video_Set_Mode(int width, int height);
+
+class VideoPresentationScope
+{
+	public:
+		VideoPresentationScope();
+		~VideoPresentationScope();
+		VideoPresentationScope(VideoPresentationScope const &) = delete;
+		VideoPresentationScope & operator=(VideoPresentationScope const &) = delete;
+		void Set(int width, int height);
+
+	private:
+		int Width;
+		int Height;
+};
+void Video_Set_Menu_Presentation(bool enabled);
+void Video_Set_Movie_Presentation(bool enabled);
 void Video_On_Resize(int drawablewidth, int drawableheight);
 void Video_Set_Refresh_Rate(int refreshrate);
 
@@ -57,6 +84,7 @@ VideoScaleInfo const & Video_Get_Scale_Info(void);
 
 unsigned int Video_Presents_Per_Second(void);
 unsigned int Video_Present_Interval(void);
+bool Video_Presentation_Due(void);
 
 std::uint64_t Video_Present_Count(void);
 std::uint64_t Video_Frame_Upload_Count(void);

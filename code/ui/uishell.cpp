@@ -85,6 +85,7 @@ bool Input_Event(WindowEventType type)
 		case WINDOW_EVENT_MOUSE_DOWN:
 		case WINDOW_EVENT_MOUSE_UP:
 		case WINDOW_EVENT_MOUSE_WHEEL:
+		case WINDOW_EVENT_PINCH:
 		case WINDOW_EVENT_KEY_DOWN:
 		case WINDOW_EVENT_KEY_UP:
 		case WINDOW_EVENT_TEXT:
@@ -120,6 +121,9 @@ int Rml_Modifiers(int modifiers)
 	}
 	if ((modifiers & WINDOW_MOD_NUM) != 0) {
 		result |= Rml::Input::KM_NUMLOCK;
+	}
+	if ((modifiers & WINDOW_MOD_META) != 0) {
+		result |= Rml::Input::KM_META;
 	}
 	return(result);
 }
@@ -210,7 +214,7 @@ bool UIShellClass::Text_Input_Focused(void) const
 }
 
 
-void UIShellClass::Apply_Dimensions(void)
+void UIShellClass::Apply_Dimensions(bool opening_modal)
 {
 	UIFrameRect frame = Host.Frame();
 
@@ -219,12 +223,16 @@ void UIShellClass::Apply_Dimensions(void)
 		ratio = 1.0f;
 	}
 
+	if (opening_modal || !Modals.empty()) {
+		ratio = Host.Menu_Scale(ratio);
+	}
+
 	Context->SetDimensions(Rml::Vector2i(frame.Width, frame.Height));
 	Context->SetDensityIndependentPixelRatio(ratio);
 
 	Fonts->Set_Scale(ratio);
 
-	int magnification = Host.Art_Magnification();
+	int magnification = Host.Art_Magnification(ratio);
 	if (magnification != ArtMagnification) {
 		ArtMagnification = magnification;
 		Render->Set_Art_Magnification(magnification);
@@ -266,7 +274,7 @@ std::array<bool, UIInputStateClass::BUTTON_COUNT> UIShellClass::Physical_Buttons
 }
 
 
-void UIShellClass::Quarantine_Held_Input(void)
+void UIShellClass::Quarantine_Held_Input(bool include_mouse)
 {
 	Input.Reset();
 
@@ -276,6 +284,7 @@ void UIShellClass::Quarantine_Held_Input(void)
 		}
 	}
 
+	if (!include_mouse) return;
 	std::array<bool, UIInputStateClass::BUTTON_COUNT> held = Physical_Buttons();
 	for (unsigned button = 0; button < held.size(); button++) {
 		if (held[button]) {
@@ -853,6 +862,8 @@ bool UIShellClass::Handle_Wheel(int x, int y, float delta, bool horizontal, int 
 		return(false);
 	}
 
+	Context->ProcessMouseMove(position.X, position.Y, modifiers);
+	MouseInside = true;
 	Rml::Vector2f movement = horizontal ? Rml::Vector2f(delta, 0.0f) : Rml::Vector2f(0.0f, -delta);
 	bool consumed = !Context->ProcessMouseWheel(movement, modifiers);
 	Host.Mark_Overlay_Dirty();
@@ -982,8 +993,10 @@ UIResult UIShellClass::Run_Modal(UIViewClass & view, UIServiceCallback const & s
 	RevealStart = Clock().Milliseconds();
 	Fonts->Load_Game_Fonts();
 	Fonts->Apply_Policy();
+	Apply_Dimensions(true);
 
 	if (!Prepare_View(view)) {
+		Apply_Dimensions();
 		Report_Open_Error(view, Render->Error()[0] != '\0' ? Render->Error() : System->First_Error().c_str());
 		return(UI_RESULT_FAILED_TO_OPEN);
 	}
@@ -1013,6 +1026,7 @@ UIResult UIShellClass::Run_Modal(UIViewClass & view, UIServiceCallback const & s
 		view.Release();
 		Modals.pop_back();
 		Services.pop_back();
+		Apply_Dimensions();
 		Uncover(covered);
 		Report_Open_Error(view, Render->Error());
 		return(UI_RESULT_FAILED_TO_OPEN);
@@ -1091,6 +1105,7 @@ UIResult UIShellClass::Run_Modal(UIViewClass & view, UIServiceCallback const & s
 	ModalClosing = false;
 
 	if (Ready) {
+		Apply_Dimensions();
 		Host.Mark_Overlay_Dirty();
 		std::snprintf(label, sizeof(label), "%s closed", view.Name());
 		Render->Log_Resource_Counts(label);
@@ -1304,7 +1319,7 @@ bool UIShellClass::Handle_Window_Event(WindowEvent const & event)
 			Input.Cancel_Keys();
 			Release_UI_Capture();
 		} else if (Active()) {
-			Quarantine_Held_Input();
+			Quarantine_Held_Input(!event.FocusClickThrough);
 		}
 		return(false);
 	}
@@ -1335,6 +1350,16 @@ bool UIShellClass::Handle_Window_Event(WindowEvent const & event)
 
 bool UIShellClass::Handle_Input_Event(WindowEvent const & event)
 {
+	if ((event.Type == WINDOW_EVENT_PINCH || (event.Type == WINDOW_EVENT_MOUSE_WHEEL && event.PreciseScroll))
+		&& !UIDev_Active()) {
+		auto * modal = Modal();
+		auto const position = Pointer_Position(event.X, event.Y);
+		if (modal && position.Inside && modal->Handle_Pointer_Gesture(event, position.X, position.Y)) {
+			Host.Mark_Overlay_Dirty();
+			return(true);
+		}
+	}
+
 	switch (event.Type) {
 		case WINDOW_EVENT_MOUSE_MOVE:
 			return(Handle_Mouse_Move(event.X, event.Y, Rml_Modifiers(event.Modifiers)));

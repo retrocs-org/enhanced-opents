@@ -11,6 +11,9 @@
 
 #include "ui/rml/rmlview.h"
 
+#include "video.h"
+
+#include <iterator>
 #include <utility>
 
 
@@ -51,6 +54,12 @@ void UIGameControlsPresenterClass::Execute(UIIntent const & intent)
 		State.Scroll = Clamp_Level(intent.Value, SCROLL_LEVELS);
 	} else if (intent.Name == "detail") {
 		State.Detail = Clamp_Level(intent.Value, DETAIL_LEVELS);
+	} else if (intent.Name == "graphicsscale" && State.HasUIScale) {
+		State.GraphicsScale = Clamp_Level(intent.Value, static_cast<int>(std::size(GameplayUIScalePresets)));
+	} else if (intent.Name == "uiscale" && State.HasUIScale) {
+		State.UIScale = Clamp_Level(intent.Value, static_cast<int>(std::size(GameplayUIScalePresets)));
+	} else if (intent.Name == "menusize" && State.HasUIScale) {
+		State.MenuSize = Clamp_Level(intent.Value, 3);
 	} else if (intent.Name == "difficulty") {
 		State.Difficulty = Clamp_Level(intent.Value, DIFFICULTY_LEVELS);
 	} else if (intent.Name == "cameo") {
@@ -111,6 +120,14 @@ void UIGameControlsPresenterClass::Update_Names(void)
 	State.SpeedName = Name_Of(State.SpeedNames, (int)State.SpeedNames.size() - 1 - State.Speed);
 	State.ScrollName = Name_Of(State.ScrollNames, (int)State.ScrollNames.size() - 1 - State.Scroll);
 	State.DetailName = Name_Of(State.DetailNames, State.Detail);
+	auto const scale_name = [](int level) {
+		int const percent = GameplayUIScalePresets[level];
+		return(percent == 0 ? std::string("Native") : std::to_string(percent) + "%");
+	};
+	State.GraphicsScaleName = scale_name(State.GraphicsScale);
+	State.UIScaleName = scale_name(State.UIScale);
+	char const * const menu_sizes[] = {"Small", "Medium", "Large"};
+	State.MenuSizeName = menu_sizes[State.MenuSize];
 	State.DifficultyName = Name_Of(State.DifficultyNames, State.Difficulty);
 }
 
@@ -132,6 +149,12 @@ class UIGameControlsViewClass : public UIRmlViewClass
 			Model.DirtyVariable("speed");
 			Model.DirtyVariable("scroll");
 			Model.DirtyVariable("detail");
+			Model.DirtyVariable("graphicsscale");
+			Model.DirtyVariable("graphicsscalename");
+			Model.DirtyVariable("uiscale");
+			Model.DirtyVariable("uiscalename");
+			Model.DirtyVariable("menusize");
+			Model.DirtyVariable("menusizename");
 			Model.DirtyVariable("difficulty");
 			Model.DirtyVariable("cameo");
 			Model.DirtyVariable("lines");
@@ -151,6 +174,13 @@ class UIGameControlsViewClass : public UIRmlViewClass
 			return(model.Bind("speed", &state.Speed)
 				&& model.Bind("scroll", &state.Scroll)
 				&& model.Bind("detail", &state.Detail)
+				&& model.Bind("graphicsscale", &state.GraphicsScale)
+				&& model.Bind("graphicsscalename", &state.GraphicsScaleName)
+				&& model.Bind("uiscale", &state.UIScale)
+				&& model.Bind("hasuiscale", &state.HasUIScale)
+				&& model.Bind("uiscalename", &state.UIScaleName)
+				&& model.Bind("menusize", &state.MenuSize)
+				&& model.Bind("menusizename", &state.MenuSizeName)
 				&& model.Bind("difficulty", &state.Difficulty)
 				&& model.Bind("cameo", &state.CameoText)
 				&& model.Bind("lines", &state.ActionLines)

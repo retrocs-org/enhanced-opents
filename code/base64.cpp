@@ -78,41 +78,6 @@ static unsigned char const _decoder[256] = {
 int const PacketChars = 4;
 
 
-/*
-**	The packet type is used to construct and disect the Base64 data blocks. The data
-**	consists of three source data bytes mapped onto four 6 bit Base64 code elements.
-*/
-typedef union {
-	struct {
-#ifdef BIG_ENDIAN
-		unsigned char C1;
-		unsigned char C2;
-		unsigned char C3;
-#else
-		unsigned char C3;
-		unsigned char C2;
-		unsigned char C1;
-#endif
-		unsigned char pad;
-	} Char;
-	struct {
-#ifdef BIG_ENDIAN
-		unsigned O1:6;
-		unsigned O2:6;
-		unsigned O3:6;
-		unsigned O4:6;
-#else
-		unsigned O4:6;
-		unsigned O3:6;
-		unsigned O2:6;
-		unsigned O1:6;
-#endif
-		unsigned pad:8;
-	} SubCode;
-	unsigned int Raw;
-}	PacketType;
-
-
 /***********************************************************************************************
  * Base64_Encode -- Encode data into Base 64 format.                                           *
  *                                                                                             *
@@ -158,41 +123,15 @@ int Base64_Encode(void const * source, int slen, void * dest, int dlen)
 		/*
 		**	Fetch 24 bits of source data.
 		*/
-		PacketType packet;
+		unsigned int const first = *sptr++;
+		unsigned int const second = slen > 1 ? *sptr++ : 0;
+		unsigned int const third = slen > 2 ? *sptr++ : 0;
 
-		int pad = 0;
-		packet.Raw = 0;
-		packet.Char.C1 = *sptr++;
-		slen--;
-		if (slen) {
-			packet.Char.C2 = *sptr++;
-			slen--;
-		} else {
-			pad++;
-		}
-		if (slen) {
-			packet.Char.C3 = *sptr++;
-			slen--;
-		} else {
-			pad++;
-		}
-
-		/*
-		**	Translate and write 4 characters of Base64 data. Pad with pad
-		**	characters if there is insufficient source data for a full packet.
-		*/
-		*dptr++ = _encoder[packet.SubCode.O1];
-		*dptr++ = _encoder[packet.SubCode.O2];
-		if (pad < 2) {
-			*dptr++ = _encoder[packet.SubCode.O3];
-		} else {
-			*dptr++ = _pad[0];
-		}
-		if (pad < 1) {
-			*dptr++ = _encoder[packet.SubCode.O4];
-		} else {
-			*dptr++ = _pad[0];
-		}
+		*dptr++ = _encoder[first >> 2];
+		*dptr++ = _encoder[((first & 3) << 4) | (second >> 4)];
+		*dptr++ = slen > 1 ? _encoder[((second & 15) << 2) | (third >> 6)] : _pad[0];
+		*dptr++ = slen > 2 ? _encoder[third & 63] : _pad[0];
+		slen -= slen > 3 ? 3 : slen;
 
 		dlen -= PacketChars;
 		total += PacketChars;
@@ -251,68 +190,23 @@ int Base64_Decode(void const * source, int slen, void * dest, int dlen)
 	unsigned char * dptr = (unsigned char *)dest;
 	while (slen > 0 && dlen > 0) {
 
-		PacketType packet;
-		packet.Raw = 0;
-
-		/*
-		**	Process input until a full packet has been accumulated or the
-		**	source is exhausted.
-		*/
+		unsigned int packet = 0;
 		int pcount = 0;
 		while (pcount < PacketChars && slen > 0) {
-			unsigned char c = *sptr++;
+			unsigned char const code = _decoder[*sptr++];
 			slen--;
-
-			unsigned char code = _decoder[c];
-
-			/*
-			**	An unrecognized character is skipped.
-			*/
 			if (code == BAD) continue;
-
-			/*
-			**	The "=" character signifies the end of data regardless of what
-			**	the source buffer length value may be.
-			*/
 			if (code == END) {
 				slen = 0;
 				break;
 			}
-
-			/*
-			**	A valid Base64 character was found so add it to the packet
-			**	data.
-			*/
-			switch (pcount) {
-				case 0:
-					packet.SubCode.O1 = code;
-					break;
-				case 1:
-					packet.SubCode.O2 = code;
-					break;
-				case 2:
-					packet.SubCode.O3 = code;
-					break;
-				case 3:
-					packet.SubCode.O4 = code;
-					break;
-			}
+			packet = (packet << 6) | code;
 			pcount++;
 		}
 
-		/*
-		**	A packet block is ready for output into the destination buffer.
-		*/
-		*dptr++ = packet.Char.C1;
-		dlen--;
-		total++;
-		if (dlen > 0 && pcount > 2) {
-			*dptr++ = packet.Char.C2;
-			dlen--;
-			total++;
-		}
-		if (dlen > 0 && pcount > 3) {
-			*dptr++ = packet.Char.C3;
+		packet <<= (PacketChars - pcount) * 6;
+		for (int byte = 0; byte + 1 < pcount && dlen > 0; byte++) {
+			*dptr++ = (unsigned char)(packet >> (16 - byte * 8));
 			dlen--;
 			total++;
 		}

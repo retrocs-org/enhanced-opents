@@ -72,6 +72,7 @@ namespace MapCapture
 		CaptureType Capture;
 		std::string DescriptionPath;
 		bool IsShorthand = false;
+		bool EditorView = false;
 		Spawner::Config ListedSeats;
 
 
@@ -392,6 +393,16 @@ namespace MapCapture
 				return(false);
 			}
 
+			if (EditorView) {
+				Point2D origin;
+				TacticalMap->Coord_To_Pixel(Coord(0, 0, 0), origin);
+				char metadata[128];
+				int const length = std::snprintf(metadata, sizeof(metadata), "%d %d %d %d\n",
+					origin.X, origin.Y, ISO_TILE_PIXEL_W / 2, ISO_TILE_PIXEL_H / 2);
+				RawFileClass projection((Capture.Output + ".view").c_str());
+				if (!projection.Open(FileClass::WRITE) || projection.Write(metadata, length) != length) return(false);
+			}
+
 			DebugString("MapCapture: wrote %s, %dx%d, from LocalSize %d,%d,%d,%d.\n", Capture.Output.c_str(),
 				view.Width, view.Height, local.X, local.Y, local.Width, local.Height);
 			return(true);
@@ -478,7 +489,9 @@ namespace MapCapture
 				return(false);
 			}
 
-			if (Capture.Area == AreaType::Full) {
+			if (EditorView) {
+				Map.LocalRect = Map.PlayRect;
+			} else if (Capture.Area == AreaType::Full) {
 				Map.Set_Local_Dimensions(Map.PlayRect);
 			}
 
@@ -506,6 +519,12 @@ namespace MapCapture
 	/// <summary>
 	/// Names the map a capture run draws, which makes the run headless.
 	/// </summary>
+	void Request_Editor_View()
+	{
+		EditorView = true;
+	}
+
+
 	void Request_Map(char const * name)
 	{
 		Capture.Map = name;

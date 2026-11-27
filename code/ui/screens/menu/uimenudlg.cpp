@@ -17,11 +17,12 @@
 #include "ui/uienginehost.h"
 #include "ui/uishell.h"
 #include "ui/uiview.h"
+#include "video.h"
 
 
 void UI_Menu_Place(UIMenuState & state)
 {
-	state.Top = (HiddenSurface != NULL) ? (HiddenSurface->Get_Height() - 400) / 2 + 147 : -1;
+	state.Top = (HiddenSurface != NULL) ? (Video_Get_Scale_Info().GameHeight - 400) / 2 + 147 : -1;
 }
 
 

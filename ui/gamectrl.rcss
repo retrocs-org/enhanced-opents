@@ -28,6 +28,23 @@
 	margin-top: -146dp;
 }
 
+.uiscaling .row + .row
+{
+	margin-top: 20dp;
+}
+
+.uiscaling #reveal
+{
+	height: 425dp;
+	margin-top: -212.5dp;
+}
+
+.frontend.uiscaling #reveal
+{
+	height: 400dp;
+	margin-top: -200dp;
+}
+
 #content
 {
 	padding: 19dp 27dp 0 33dp;

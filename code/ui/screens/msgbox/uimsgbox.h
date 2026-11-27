@@ -54,3 +54,5 @@ enum UINetworkMessageButtons
 };
 
 bool UI_Network_Message_Box(char const * text, UINetworkMessageButtons buttons, bool (*idle)(void));
+
+void UI_Frontier_Dialog(std::string const & briefing);
