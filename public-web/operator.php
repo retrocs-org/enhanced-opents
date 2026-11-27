@@ -87,7 +87,7 @@ try {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OpenTS Enhanced operator queue</title><link rel="stylesheet" href="assets/site.css"></head>
 <body><main class="shell section">
-<p><a href="./">← Frontier</a></p>
+<p><a href="world-domination.php">← World Domination Tour</a></p>
 <h1 class="utility-title">Operator queue</h1>
 <p>Signed in as <?= h($operator) ?></p>
 <?php if ($notice): ?><p class="empty" role="status"><?= h($notice) ?></p><?php endif; ?>

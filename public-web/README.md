@@ -1,9 +1,10 @@
 # Enhanced OpenTS public website
 
-The homepage shows a map of the current Frontier season with territory owners,
-active battle status and faction totals. Select a territory on the map to see
-its scenario and battle status. The page loads the same campaign snapshot as
-the API on each request.
+Command Uplink links to the World Domination Tour and private match lobby.
+The Tour page shows the current Frontier season map, territory owners,
+active battles, confirmed wins and recent results. Select a territory on
+the map to see its scenario and battle status. The page reads the campaign
+database on each request.
 
 ## Setup
 
