@@ -60,8 +60,9 @@ function territoryStatus(array $territory, array $battleLabels): string
 </head>
 <body>
 <?php commandUplinkNav('world-domination.php'); ?>
-<main class="shell" id="main">
+<main id="main">
 <section class="hero page-art page-art-frontier">
+<div class="shell">
 <p class="eyebrow">Multiplayer campaign</p>
 <h1><?= h($campaign['name'] ?? 'Frontier') ?></h1>
 <p class="intro">GDI and Nod fight for control of Frontier. Only an operator-confirmed win changes territory ownership.</p>
@@ -75,7 +76,9 @@ function territoryStatus(array $territory, array $battleLabels): string
 <?php endif; ?>
 </dl>
 <?php endif; ?>
+</div>
 </section>
+<div class="shell">
 <section class="section" id="frontier">
 <div class="section-head"><div><p class="eyebrow">Current season</p><h2>Territory control</h2></div>
 <?php if ($territories): ?><div class="score" aria-label="Territories by owner">
@@ -139,6 +142,7 @@ function territoryStatus(array $territory, array $battleLabels): string
 <?php endforeach; ?>
 </tbody></table></div><?php endif; ?>
 </section>
+</div>
 </main>
 <footer class="shell footer"><span>Enhanced OpenTS</span><div><a href="https://github.com/OpenTS-Developers/OpenTS">Source code</a><a href="operator.php">Operator queue</a></div></footer>
 </body>

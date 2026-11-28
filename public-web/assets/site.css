@@ -25,12 +25,19 @@ html {
 
 body {
     margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background:
         radial-gradient(ellipse at 85% 12%,#172b39 0%,transparent 48rem),
         radial-gradient(ellipse at 10% 45%,#101b2c 0%,transparent 55rem),
         var(--base);
     color: var(--paper);
     font: 16px/1.55 system-ui,sans-serif;
+}
+
+main {
+    flex: 1 0 auto;
 }
 
 a {
@@ -48,7 +55,7 @@ a:focus-visible {
 }
 
 .shell {
-    width: min(1180px,calc(100% - 64px));
+    width: min(1440px,calc(100% - clamp(34px,6vw,96px)));
     margin-inline: auto;
 }
 
@@ -588,6 +595,14 @@ tr+tr td,tbody tr:first-child td {
     font-weight: 750;
 }
 
+.site-header {
+    border-bottom: 1px solid var(--line);
+}
+
+.site-header > .shell > :last-child {
+    border-bottom: 0;
+}
+
 .site-header .top {
     flex-wrap: wrap;
 }
@@ -812,7 +827,7 @@ tr+tr td,tbody tr:first-child td {
 
 .account-panel {
     max-width: 40rem;
-    margin: clamp(24px,7vw,80px) auto;
+    margin: 0;
     padding: clamp(20px,6vw,46px);
     background: var(--panel-surface);
     box-shadow: var(--panel-shadow);
@@ -951,8 +966,8 @@ tr+tr td,tbody tr:first-child td {
 .hero.page-art {
     display: grid;
     align-content: center;
-    min-height: clamp(230px,30vw,350px);
-    padding: clamp(22px,5vw,56px);
+    min-height: clamp(240px,32vw,430px);
+    padding: clamp(24px,5vw,64px) 0;
 }
 
 .page-art .intro {

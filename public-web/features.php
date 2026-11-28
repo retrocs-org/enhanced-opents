@@ -1,12 +1,15 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/navigation.php';
-sitePage('Features', 'features.php');
+sitePage('Features', 'features.php', wide: true);
 ?>
 <section class="hero page-art page-art-features">
+<div class="shell">
 <h1>Features</h1>
 <p class="intro">From Tiberian Sun and Firestorm to the Frontier multiplayer campaign and a native macOS port.</p>
+</div>
 </section>
+<div class="shell">
 <section class="section" aria-labelledby="timeline-title">
 <h2 id="timeline-title">Release timeline</h2>
 <ol class="feature-timeline">
@@ -58,4 +61,5 @@ sitePage('Features', 'features.php');
 </tbody>
 </table></div>
 </section>
+</div>
 <?php sitePageEnd(); ?>

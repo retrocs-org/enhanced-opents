@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-function sitePage(string $title, string $current, bool $wide = false): void
+function sitePage(string $title, string $current, bool $wide = false, string $view = ''): void
 {
     header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
     header('X-Content-Type-Options: nosniff');
@@ -15,7 +15,7 @@ function sitePage(string $title, string $current, bool $wide = false): void
 <link rel="stylesheet" href="assets/site.css?v=<?= filemtime(__DIR__ . '/assets/site.css') ?>">
 </head>
 <body>
-<?php commandUplinkNav($current); ?>
+<?php commandUplinkNav($current, $view); ?>
 <main<?= $wide ? '' : ' class="shell"' ?> id="main">
     <?php
 }
@@ -51,7 +51,8 @@ function commandUplinkNav(string $current, string $view = ''): void
     };
     ?>
 <a class="skip" href="#main">Skip to content</a>
-<header class="shell site-header">
+<header class="site-header">
+<div class="shell">
 <div class="top">
 <a class="brand" href="./"><img class="brand-emblem" src="assets/opents-faction-emblem.webp" width="42" height="42" alt=""><span>Enhanced OpenTS</span></a>
 <nav aria-label="Main navigation">
@@ -74,6 +75,7 @@ function commandUplinkNav(string $current, string $view = ''): void
 <?php endforeach; ?>
 </nav>
 <?php endif; ?>
+</div>
 </header>
     <?php
 }

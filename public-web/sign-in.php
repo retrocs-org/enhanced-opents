@@ -11,9 +11,11 @@ $options = [
 $requested = $_GET['mode'] ?? 'login';
 $mode = is_string($requested) && isset($options[$requested]) ? $requested : 'login';
 [$title, $message] = $options[$mode];
-sitePage($title, 'sign-in.php');
+sitePage($title, 'sign-in.php', wide: true);
 ?>
-<section class="section account-panel page-art page-art-account" aria-labelledby="account-heading">
+<section class="hero page-art page-art-account" aria-labelledby="account-heading">
+<div class="shell">
+<div class="account-panel">
 <h1 class="utility-title" id="account-heading"><?= $title ?></h1>
 <p class="intro"><?= $message ?></p>
 <nav class="account-options" aria-label="Account options">
@@ -21,5 +23,7 @@ sitePage($title, 'sign-in.php');
 <a href="sign-in.php<?= $key === 'login' ? '' : '?mode=' . $key ?>"<?= $key === $mode ? ' aria-current="page"' : '' ?>><?= $label ?></a>
 <?php endforeach; ?>
 </nav>
+</div>
+</div>
 </section>
 <?php sitePageEnd(); ?>

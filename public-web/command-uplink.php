@@ -20,13 +20,16 @@ $territories = $campaign['territories'] ?? [];
 $owners = array_count_values(array_column($territories, 'owner'));
 $activeBattles = count(array_filter(array_column($territories, 'battle_id')));
 $recent = array_slice($campaign['history'] ?? [], 0, 4);
-sitePage('Command Uplink', 'command-uplink.php');
+sitePage('Command Uplink', 'command-uplink.php', wide: true);
 ?>
 <section class="hero uplink-intro page-art page-art-uplink">
+<div class="shell">
 <p class="eyebrow">Multiplayer hub</p>
 <h1>Command Uplink</h1>
 <p class="intro">Follow the campaign, see who holds territory, or find multiplayer servers.</p>
+</div>
 </section>
+<div class="shell">
 <section class="uplink-feature" aria-labelledby="uplink-campaign">
 <div>
 <p class="eyebrow">Current campaign</p>
@@ -71,5 +74,6 @@ sitePage('Command Uplink', 'command-uplink.php');
 <a class="uplink-link" href="servers.php">Public Server Listing →</a>
 <a class="uplink-link" href="servers.php?view=leaderboards">Leaderboards →</a>
 </section>
+</div>
 </div>
 <?php sitePageEnd(); ?>
