@@ -14,6 +14,10 @@ return [
     'OPENTS_WEB_DB_USER' => 'enhanced-opents',
     'OPENTS_WEB_DB_PASSWORD' => '',
 
+    // Player activation and recovery email. Use the public HTTPS origin.
+    'OPENTS_ACCOUNT_ORIGIN' => 'https://enhanced-opents.retrocs.org',
+    'OPENTS_ACCOUNT_MAIL_FROM' => '',
+
     // Match host and operator authentication. Use two distinct random tokens.
     'OPENTS_WDT_SERVER_TOKEN' => '',
     'OPENTS_WDT_OPERATOR_NAME' => '',

@@ -10,11 +10,6 @@ ini_set('display_errors', '0');
 require __DIR__ . '/campaign.php';
 
 try {
-    $schema = @file_get_contents(__DIR__ . '/schema.sql');
-    if ($schema === false || trim($schema) === '') {
-        throw new RuntimeException('The bundled schema is missing or empty.');
-    }
-
     $db = database();
     $battleColumns = $db->query("
         SELECT COLUMN_NAME FROM information_schema.COLUMNS
@@ -25,10 +20,15 @@ try {
         exit(1);
     }
 
-    // The bundled schema separates statements with a semicolon at the end of a line.
-    foreach (preg_split('/;[ \t]*(?:\R|$)/', $schema) as $statement) {
-        if (trim($statement) !== '') {
-            $db->exec($statement);
+    foreach (['schema.sql', 'migrations/005-player-accounts.sql'] as $file) {
+        $schema = @file_get_contents(__DIR__ . '/' . $file);
+        if ($schema === false || trim($schema) === '') {
+            throw new RuntimeException("Missing or empty schema file: $file.");
+        }
+        foreach (preg_split('/;[ \t]*(?:\R|$)/', $schema) as $statement) {
+            if (trim($statement) !== '') {
+                $db->exec($statement);
+            }
         }
     }
     echo "Enhanced OpenTS MariaDB schema initialized.\n";

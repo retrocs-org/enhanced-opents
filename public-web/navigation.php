@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function sitePage(string $title, string $current, bool $wide = false, string $view = ''): void
 {
-    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
+    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
     header('X-Content-Type-Options: nosniff');
     ?>
 <!doctype html>
@@ -41,6 +41,7 @@ function commandUplinkNav(string $current, string $view = ''): void
         'features.php' => 'Features',
         'command-uplink.php' => 'Command Uplink',
         'downloads.php' => 'Downloads',
+        'source.php' => 'Source',
         'sign-in.php' => 'Sign in',
     ];
     $showModes = $current === 'command-uplink.php' || isset($pages[$current]);

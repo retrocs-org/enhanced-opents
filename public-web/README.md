@@ -1,13 +1,18 @@
 # Enhanced OpenTS public website
 
-The public site has Overview, Features, Downloads and Sign in pages.
+The public site has Overview, Features, Downloads, Source and Sign in pages.
+Downloads reads the public GitHub releases for `retrocs-org/enhanced-opents`.
+Name binaries with their platform (macOS, Windows, Win32, Win64 or Linux)
+and include `server` or `dedicated` in Linux dedicated-server asset names.
+PHP needs outbound HTTPS and `allow_url_fopen` for the release feed. APCu
+caches results when available.
 Command Uplink previews live campaign control, active battles and recent
 results, with links to Frontier and the Public Server Browser.
 The Frontier page reads live territory owners, active battles, confirmed
 wins and recent results from MariaDB. Public Server Listing and Leaderboards
 are unavailable until a public directory and match results are connected.
 The invite-only check-in remains available at `lobby.php` for match hosts
-to share directly. Player account actions require an account service.
+to share directly. Players manage their website accounts on the Sign in page.
 
 ## Setup
 
@@ -26,6 +31,22 @@ to share directly. Player account actions require an account service.
 4. Open `index.php` for the site or `api.php?route=theater` for JSON.
    For local development, run `php -S 127.0.0.1:8080 -t public-web`
    from the project root. Serve the live site over HTTPS.
+
+## Player accounts
+
+On an existing installation, apply `migrations/005-player-accounts.sql` to
+the website database as an administrator. On a fresh installation,
+`php migrate.php` creates the account tables. Grant the website account
+DELETE on `opents_account_rate` so it can remove expired rate-limit entries.
+The usual SELECT, INSERT, and UPDATE grants cover the rest of account access.
+
+Set `OPENTS_ACCOUNT_ORIGIN` to the public HTTPS origin and
+`OPENTS_ACCOUNT_MAIL_FROM` to a sender accepted by the mail relay.
+PHP `mail()` must have a working sendmail transport on the web host.
+Serve the site over HTTPS for secure session cookies. Registration emails
+a link for setting the first password. Recovery emails a single-use
+password reset link and invalidates existing player sessions when used.
+Player accounts are for this website.
 
 ## Frontier challenges
 

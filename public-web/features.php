@@ -18,13 +18,16 @@ sitePage('Features', 'features.php', wide: true);
 <li><time datetime="2026-08-27">27 Aug 2026</time><div><p class="eyebrow">Open-source engine</p><h3>OpenTS 0.1.0</h3><p>The first public release brings the reconstructed engine to 32-bit and 64-bit Windows.</p></div></li>
 <li class="feature-timeline-current"><time datetime="2026-11">Nov 2026</time><div><p class="eyebrow">Community fork</p><h3>Enhanced OpenTS</h3><p>Frontier adds a persistent multiplayer campaign, and the native macOS port brings the engine to Apple silicon and Intel Macs.</p><p><a class="feature-link" href="#enhanced">Explore this chapter ↓</a></p></div></li>
 </ol>
+<p><a class="feature-link" href="https://github.com/OpenTS-Developers/OpenTS/blob/main/docs/HISTORY.md">Read the upstream project history →</a></p>
+</section>
 <section class="feature-chapter" id="enhanced" aria-labelledby="enhanced-title">
-<h2 id="enhanced-title">Enhanced OpenTS</h2>
+<h2 id="enhanced-title">Built for more ways to play together</h2>
+<p class="intro">Enhanced OpenTS adds an ongoing territory campaign, tools for arranging and verifying matches, and more ways to follow multiplayer activity.</p>
 <div class="overview-grid">
 <article class="operator-card">
 <p class="eyebrow">Multiplayer campaign</p>
 <h3>Fight for Frontier</h3>
-<p>GDI and Nod compete across five Frontier sectors in two-player battles. A territory stays reserved while a match is being arranged, played, or reviewed. Only an operator-confirmed win changes ownership.</p>
+<p>GDI and Nod fight two-player battles across five connected sectors. Capturing a sector moves the front line and opens new targets. An operator-confirmed win transfers control.</p>
 <a href="world-domination.php">View the season map →</a>
 </article>
 <article class="operator-card">
@@ -35,8 +38,19 @@ sitePage('Features', 'features.php', wide: true);
 <article class="operator-card">
 <p class="eyebrow">Command Uplink</p>
 <h3>Follow the season</h3>
-<p>The public map shows live ownership, active battles, faction wins, and recent results. The in-game Frontier menu can show territories and recent results when configured. Public Server Listing and Leaderboards have dedicated views awaiting a server directory and match data.</p>
+<p>The public map shows live ownership, active battles, faction wins, and recent results. The in-game Frontier menu can show territories and recent results when configured.</p>
 <a href="command-uplink.php">Open Command Uplink →</a>
+</article>
+<article class="operator-card">
+<p class="eyebrow">Multiplayer in development</p>
+<h3>Public servers and leaderboards</h3>
+<p>Public server discovery and player rankings are the next areas of focus. Command Uplink already has separate views for both. Live listings and rankings will become available when the server directory and match results are connected.</p>
+<a href="servers.php">Visit the Public Server Browser →</a>
+</article>
+<article class="operator-card">
+<p class="eyebrow">Map editor</p>
+<h3>Build your own multiplayer maps</h3>
+<p>Create temperate or snow maps in the in-game editor, set up player starting positions, and save or export scenarios for multiplayer.</p>
 </article>
 <article class="operator-card">
 <p class="eyebrow">macOS port</p>
@@ -45,21 +59,6 @@ sitePage('Features', 'features.php', wide: true);
 <a href="downloads.php">See macOS build options →</a>
 </article>
 </div>
-</section>
-<p><a class="feature-link" href="https://github.com/OpenTS-Developers/OpenTS/blob/main/docs/HISTORY.md">Read the upstream project history →</a></p>
-</section>
-<section class="section">
-<h2>What’s changed</h2>
-<div class="table-wrap feature-comparison"><table>
-<thead><tr><th scope="col">Area</th><th scope="col">Original games</th><th scope="col">Enhanced OpenTS</th></tr></thead>
-<tbody>
-<tr><th scope="row">Campaigns</th><td>GDI and Nod campaigns in Tiberian Sun, with new missions and units in Firestorm.</td><td>Uses the original game data for campaigns and skirmish.</td></tr>
-<tr><th scope="row">Platforms</th><td>Originally released for Windows.</td><td>OpenTS provides Windows builds. Enhanced OpenTS adds a native macOS port for Apple silicon and Intel.</td></tr>
-<tr><th scope="row">Display</th><td>Display modes from the retail Windows release.</td><td>Modern resolutions, scaling controls and Metal rendering on macOS.</td></tr>
-<tr><th scope="row">Maps</th><td>Scenario maps shipped with the game and expansion.</td><td>An in-game editor can create or edit maps and save multiplayer scenarios.</td></tr>
-<tr><th scope="row">Multiplayer</th><td>Standalone multiplayer matches.</td><td>The Frontier campaign tracks territory control and confirmed match results.</td></tr>
-</tbody>
-</table></div>
 </section>
 </div>
 <?php sitePageEnd(); ?>
