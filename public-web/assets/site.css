@@ -721,3 +721,25 @@ tr+tr td,tbody tr:first-child td {
     padding-top: 18px;
     border-top: 1px solid var(--line);
 }
+
+.feature-timeline .eyebrow {
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.feature-link {
+    text-decoration: underline;
+    text-underline-offset: .18em;
+}
+
+.feature-chapter {
+    padding: clamp(20px,4vw,38px);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: linear-gradient(135deg,#1a291b,var(--base));
+    scroll-margin-top: 18px;
+}
+
+.feature-chapter .overview-grid {
+    margin-top: 20px;
+}
