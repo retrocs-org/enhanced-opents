@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-function sitePage(string $title, string $current): void
+function sitePage(string $title, string $current, bool $wide = false): void
 {
     header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
     header('X-Content-Type-Options: nosniff');
@@ -16,7 +16,7 @@ function sitePage(string $title, string $current): void
 </head>
 <body>
 <?php commandUplinkNav($current); ?>
-<main class="shell" id="main">
+<main<?= $wide ? '' : ' class="shell"' ?> id="main">
     <?php
 }
 
