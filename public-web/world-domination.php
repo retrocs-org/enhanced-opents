@@ -110,6 +110,23 @@ function territoryStatus(array $territory, array $battleLabels): string
 <?php endforeach; ?>
 </div><?php endif; ?>
 </section>
+<section class="section" id="rules" aria-labelledby="frontier-rules-title">
+<h2 id="frontier-rules-title">How Frontier works</h2>
+<div class="overview-grid">
+<article class="operator-card">
+<h3>Pick a territory</h3>
+<p>River Crossing and Ridge Line both border Central Basin. A faction can challenge a territory it does not own when it holds a neighboring territory. If it loses all its territory, it can challenge its original home territory. GDI returns to River Crossing and Nod to Ridge Line.</p>
+</article>
+<article class="operator-card">
+<h3>Join an invited battle</h3>
+<p>The match host reserves an open territory and invites one GDI player and one Nod player. Each territory has an assigned map. Neutral territory also uses a GDI-versus-Nod match. If the host gives you an invite code, check in through the <a href="lobby.php">private battle lobby</a>.</p>
+</article>
+<article class="operator-card">
+<h3>Capture and advance</h3>
+<p>An operator-confirmed win gives the winning faction control of the territory. That can open new challenges along its borders. Drawn, cancelled, and expired battles leave ownership unchanged.</p>
+</article>
+</div>
+</section>
 <section class="section" id="history">
 <div class="section-head"><div><p class="eyebrow">Campaign record</p><h2>Recent battles</h2></div></div>
 <?php if (!$log): ?>

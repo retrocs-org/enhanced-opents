@@ -45,7 +45,7 @@ function commandUplinkNav(string $current, string $view = ''): void
     ];
     $showModes = $current === 'command-uplink.php' || isset($pages[$current]);
     $sections = match ($current) {
-        'world-domination.php' => ['#frontier' => 'Territory map', '#history' => 'Battle history'],
+        'world-domination.php' => ['#frontier' => 'Territory map', '#rules' => 'How to play', '#history' => 'Battle history'],
         'servers.php' => ['servers.php' => 'Public Server Listing', 'servers.php?view=leaderboards' => 'Leaderboards'],
         default => [],
     };
