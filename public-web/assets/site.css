@@ -851,17 +851,13 @@ tr+tr td,tbody tr:first-child td {
 }
 
 .uplink-intro {
-    border-bottom: 0;
+    margin-bottom: 20px;
 }
 
 .uplink-feature {
-    padding: clamp(24px,5vw,58px);
-    border: 1px solid var(--metal);
-    border-radius: 12px;
-    background:
-        linear-gradient(90deg,#0e1925 10%,#0e1925de 48%,#0e19254f),
-        url('frontier-dusk.webp') right 48% / cover,
-        var(--panel);
+    padding: clamp(24px,5vw,42px);
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-surface);
 }
 
 .uplink-feature p:not(.eyebrow) {
@@ -942,4 +938,47 @@ tr+tr td,tbody tr:first-child td {
     .uplink-activity {
         grid-template-columns: 1fr;
     }
+}
+
+.page-art {
+    background:
+        linear-gradient(90deg,#080d15ed 4%,#080d15bf 44%,#080d1540),
+        linear-gradient(0deg,#080d15b3,transparent 60%),
+        var(--page-art) center / cover,
+        var(--panel);
+}
+
+.hero.page-art {
+    display: grid;
+    align-content: center;
+    min-height: clamp(230px,30vw,350px);
+    padding: clamp(22px,5vw,56px);
+}
+
+.page-art .intro {
+    color: var(--paper);
+}
+
+.page-art-features {
+    --page-art: url('features-valley.webp');
+}
+
+.page-art-downloads {
+    --page-art: url('downloads-hangar.webp');
+}
+
+.page-art-uplink {
+    --page-art: url('uplink-outpost.webp');
+}
+
+.page-art-frontier {
+    --page-art: url('frontier-recon.webp');
+}
+
+.page-art-servers {
+    --page-art: url('servers-relay.webp');
+}
+
+.page-art-account {
+    --page-art: url('account-terminal.webp');
 }

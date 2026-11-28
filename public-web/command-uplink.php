@@ -22,7 +22,7 @@ $activeBattles = count(array_filter(array_column($territories, 'battle_id')));
 $recent = array_slice($campaign['history'] ?? [], 0, 4);
 sitePage('Command Uplink', 'command-uplink.php');
 ?>
-<section class="hero uplink-intro">
+<section class="hero uplink-intro page-art page-art-uplink">
 <p class="eyebrow">Multiplayer hub</p>
 <h1>Command Uplink</h1>
 <p class="intro">Follow the campaign, see who holds territory, or find multiplayer servers.</p>

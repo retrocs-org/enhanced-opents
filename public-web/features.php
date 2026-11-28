@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/navigation.php';
 sitePage('Features', 'features.php');
 ?>
-<section class="hero">
+<section class="hero page-art page-art-features">
 <h1>Features</h1>
 <p class="intro">From Tiberian Sun and Firestorm to the Frontier multiplayer campaign and a native macOS port.</p>
 </section>

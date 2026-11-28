@@ -13,7 +13,7 @@ $mode = is_string($requested) && isset($options[$requested]) ? $requested : 'log
 [$title, $message] = $options[$mode];
 sitePage($title, 'sign-in.php');
 ?>
-<section class="section account-panel" aria-labelledby="account-heading">
+<section class="section account-panel page-art page-art-account" aria-labelledby="account-heading">
 <h1 class="utility-title" id="account-heading"><?= $title ?></h1>
 <p class="intro"><?= $message ?></p>
 <nav class="account-options" aria-label="Account options">

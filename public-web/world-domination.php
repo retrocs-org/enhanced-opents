@@ -61,7 +61,7 @@ function territoryStatus(array $territory, array $battleLabels): string
 <body>
 <?php commandUplinkNav('world-domination.php'); ?>
 <main class="shell" id="main">
-<section class="hero">
+<section class="hero page-art page-art-frontier">
 <p class="eyebrow">Multiplayer campaign</p>
 <h1><?= h($campaign['name'] ?? 'Frontier') ?></h1>
 <p class="intro">GDI and Nod fight for control of Frontier. Only an operator-confirmed win changes territory ownership.</p>

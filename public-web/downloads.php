@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/navigation.php';
 sitePage('Downloads', 'downloads.php');
 ?>
-<section class="hero">
+<section class="hero page-art page-art-downloads">
 <h1>Downloads</h1>
 <p class="intro">You’ll need the original Tiberian Sun and Firestorm game data. These download links provide the engine or its source.</p>
 </section>

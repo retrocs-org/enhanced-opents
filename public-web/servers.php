@@ -19,11 +19,13 @@ $title = $leaderboards ? 'Leaderboards' : 'Public Server Listing';
 </head>
 <body>
 <?php commandUplinkNav('servers.php', $view); ?>
-<main class="shell section" id="main">
+<main class="shell" id="main">
+<section class="hero page-art page-art-servers">
 <h1 class="utility-title"><?= $title ?></h1>
 <p class="intro"><?= $leaderboards
     ? 'Public server rankings are unavailable until match results are connected.'
     : 'The public server directory is not connected yet.' ?></p>
+</section>
 </main>
 </body>
 </html>
