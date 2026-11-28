@@ -26,9 +26,11 @@ function query(PDO $db, string $sql, array $params = []): PDOStatement
 function frontierChallengers(string $id, array $owners): array
 {
     $neighbors = [
-        'river-crossing' => ['central-basin'],
-        'central-basin' => ['river-crossing', 'ridge-line'],
-        'ridge-line' => ['central-basin'],
+        'river-crossing' => ['central-basin', 'northern-pass'],
+        'central-basin' => ['river-crossing', 'ridge-line', 'northern-pass', 'southern-flats'],
+        'ridge-line' => ['central-basin', 'southern-flats'],
+        'northern-pass' => ['river-crossing', 'central-basin'],
+        'southern-flats' => ['central-basin', 'ridge-line'],
     ];
     $home = ['GDI' => 'river-crossing', 'Nod' => 'ridge-line'];
     $challengers = [];

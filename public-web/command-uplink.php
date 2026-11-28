@@ -72,5 +72,4 @@ sitePage('Command Uplink', 'command-uplink.php');
 <a class="uplink-link" href="servers.php?view=leaderboards">Leaderboards →</a>
 </section>
 </div>
-<p class="uplink-api"><a class="uplink-link" href="api.php?route=theater">Campaign API →</a></p>
 <?php sitePageEnd(); ?>

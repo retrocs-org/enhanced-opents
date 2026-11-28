@@ -29,13 +29,20 @@ to share directly. Player account actions require an account service.
 
 ## Frontier challenges
 
-River Crossing borders Central Basin, which borders Ridge Line. A faction
+Central Basin borders all four outer sectors. Northern Pass also borders
+River Crossing, and Southern Flats also borders Ridge Line. A faction
 can challenge a territory it does not own if it owns a neighboring territory.
 A faction with no territory can challenge its original home territory
 (River Crossing for GDI, Ridge Line for Nod). Each battle still has one seat
 per faction. The host may only reserve a territory that has a challenger
 and no active reservation. The public snapshot lists eligible challengers
 alongside the battle status, and the map shows the active battle first.
+
+For an existing Frontier database, apply
+`migrations/004-frontier-sectors.sql` to add the two neutral sectors. It
+can be applied again without resetting ownership or battle history.
+Northern Pass uses the Ridge Line scenario. Southern Flats uses the
+Central Basin scenario. A fresh database already includes both sectors.
 
 ## Battle lifecycle
 
@@ -70,5 +77,5 @@ host separately records actual game connections through the joined route.
 
 Set `OPENTS_WDT_API` to the site's HTTPS `api.php` URL in the game
 environment to enable the **Frontier** menu. It shows the
-three territories and recent results. The game uses the system curl
+territories and recent results. The game uses the system curl
 executable for this public read. The private web lobby handles check-in.

@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS wdt_battle (
 INSERT IGNORE INTO wdt_territory VALUES
     ('river-crossing', 'River Crossing', 'WDTRIVER.MPR', 'GDI', 1),
     ('central-basin', 'Central Basin', 'WDTBASIN.MPR', 'Neutral', 2),
-    ('ridge-line', 'Ridge Line', 'WDTRIDGE.MPR', 'Nod', 3);
+    ('ridge-line', 'Ridge Line', 'WDTRIDGE.MPR', 'Nod', 3),
+    ('northern-pass', 'Northern Pass', 'WDTRIDGE.MPR', 'Neutral', 4),
+    ('southern-flats', 'Southern Flats', 'WDTBASIN.MPR', 'Neutral', 5);
 
 CREATE TABLE IF NOT EXISTS wdt_operator_audit (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

@@ -198,21 +198,33 @@ h3 {
 }
 
 .map-region.river-crossing {
-    --border: polygon(4% 42%,11% 29%,9% 18%,22% 12%,33% 25%,36% 40%,30% 55%,35% 67%,26% 84%,13% 77%,16% 66%,7% 60%);
+    --border: polygon(5% 46%,12% 35%,9% 25%,22% 20%,35% 27%,38% 41%,32% 54%,37% 68%,26% 83%,13% 77%,16% 66%,7% 60%);
     --marker-x: 21%;
-    --marker-y: 49%;
+    --marker-y: 52%;
 }
 
 .map-region.central-basin {
-    --border: polygon(23% 11%,37% 7%,45% 16%,58% 11%,69% 22%,64% 40%,70% 49%,60% 61%,62% 73%,51% 86%,39% 77%,27% 84%,36% 67%,31% 55%,37% 40%,34% 25%);
-    --marker-x: 49%;
-    --marker-y: 46%;
+    --border: polygon(39% 40%,46% 32%,57% 29%,65% 37%,70% 49%,63% 58%,63% 65%,54% 73%,44% 65%,38% 67%,33% 54%);
+    --marker-x: 51%;
+    --marker-y: 51%;
 }
 
 .map-region.ridge-line {
-    --border: polygon(70% 22%,78% 16%,90% 24%,96% 41%,90% 54%,94% 66%,85% 83%,76% 79%,70% 93%,52% 86%,63% 73%,61% 61%,71% 49%,65% 40%);
-    --marker-x: 79%;
-    --marker-y: 59%;
+    --border: polygon(66% 36%,72% 25%,80% 20%,91% 28%,96% 43%,90% 54%,94% 65%,86% 81%,77% 77%,72% 69%,64% 64%,64% 58%,71% 49%);
+    --marker-x: 81%;
+    --marker-y: 53%;
+}
+
+.map-region.northern-pass {
+    --border: polygon(22% 19%,29% 10%,40% 6%,48% 13%,57% 7%,65% 14%,71% 24%,65% 35%,57% 28%,46% 31%,39% 39%,36% 26%);
+    --marker-x: 46%;
+    --marker-y: 20%;
+}
+
+.map-region.southern-flats {
+    --border: polygon(38% 68%,44% 66%,54% 74%,63% 66%,72% 70%,77% 78%,73% 84%,66% 82%,58% 91%,45% 94%,36% 87%,27% 84%);
+    --marker-x: 54%;
+    --marker-y: 82%;
 }
 
 .map-land {
@@ -340,11 +352,11 @@ h3 {
     background-image: linear-gradient(transparent,#10191235),url('river.webp');
 }
 
-.territory-art.central-basin {
+.territory-art.central-basin,.territory-art.southern-flats {
     background-image: linear-gradient(transparent,#10191235),url('basin.webp');
 }
 
-.territory-art.ridge-line {
+.territory-art.ridge-line,.territory-art.northern-pass {
     background-image: linear-gradient(transparent,#10191235),url('ridge.webp');
 }
 
@@ -924,13 +936,6 @@ tr+tr td,tbody tr:first-child td {
     margin: 8px 0;
     text-decoration: underline;
     text-underline-offset: .22em;
-}
-
-.uplink-api {
-    border-top: 1px solid var(--line);
-    padding-top: 14px;
-    color: var(--muted);
-    font-size: .85rem;
 }
 
 @media (max-width: 640px) {

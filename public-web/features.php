@@ -21,7 +21,7 @@ sitePage('Features', 'features.php');
 <article class="operator-card">
 <p class="eyebrow">Multiplayer campaign</p>
 <h3>Fight for Frontier</h3>
-<p>GDI and Nod compete across River Crossing, Central Basin, and Ridge Line in two-player battles. A territory stays reserved while a match is being arranged, played, or reviewed. Only an operator-confirmed win changes ownership.</p>
+<p>GDI and Nod compete across five Frontier sectors in two-player battles. A territory stays reserved while a match is being arranged, played, or reviewed. Only an operator-confirmed win changes ownership.</p>
 <a href="world-domination.php">View the season map →</a>
 </article>
 <article class="operator-card">

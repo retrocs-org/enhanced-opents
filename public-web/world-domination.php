@@ -26,7 +26,7 @@ function h(string $value): string
 }
 $territories = $campaign['territories'] ?? [];
 $counts = array_count_values(array_column($territories, 'owner'));
-$mappedTerritories = ['river-crossing', 'central-basin', 'ridge-line'];
+$mappedTerritories = ['river-crossing', 'central-basin', 'ridge-line', 'northern-pass', 'southern-flats'];
 $log = $campaign['history'] ?? [];
 $activeBattles = count(array_filter(array_column($territories, 'battle_id')));
 $battleLabels = [
@@ -140,6 +140,6 @@ function territoryStatus(array $territory, array $battleLabels): string
 </tbody></table></div><?php endif; ?>
 </section>
 </main>
-<footer class="shell footer"><span>Enhanced OpenTS</span><div><a href="https://github.com/OpenTS-Developers/OpenTS">Source code</a><a href="api.php?route=theater">Campaign API</a><a href="operator.php">Operator queue</a></div></footer>
+<footer class="shell footer"><span>Enhanced OpenTS</span><div><a href="https://github.com/OpenTS-Developers/OpenTS">Source code</a><a href="operator.php">Operator queue</a></div></footer>
 </body>
 </html>
