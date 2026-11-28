@@ -832,3 +832,104 @@ tr+tr td,tbody tr:first-child td {
 .feature-chapter .overview-grid {
     margin-top: 20px;
 }
+
+.uplink-intro {
+    border-bottom: 0;
+}
+
+.uplink-feature {
+    padding: clamp(24px,5vw,58px);
+    border: 1px solid var(--metal);
+    border-radius: 12px;
+    background:
+        linear-gradient(90deg,#0e2732 10%,#0e2732de 48%,#0e27324f),
+        url('frontier-dusk.webp') right 48% / cover,
+        var(--panel);
+}
+
+.uplink-feature p:not(.eyebrow) {
+    max-width: 48ch;
+    color: var(--paper);
+    margin: 14px 0 22px;
+}
+
+.uplink-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(130px,1fr));
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+    margin: 0;
+    padding: 24px 0;
+}
+
+.uplink-stats div {
+    padding-inline-start: 14px;
+    border-inline-start: 2px solid var(--faction,var(--lime));
+}
+
+.uplink-stats dt,.uplink-results time,.uplink-activity p {
+    color: var(--muted);
+}
+
+.uplink-stats dd {
+    margin: 0;
+    color: var(--faction,var(--paper));
+    font-size: 1.65rem;
+    font-weight: 750;
+}
+
+.uplink-unavailable {
+    margin-top: 18px;
+}
+
+.uplink-activity {
+    display: grid;
+    grid-template-columns: minmax(0,1.75fr) minmax(0,1fr);
+    gap: clamp(22px,5vw,58px);
+}
+
+.uplink-activity h2 {
+    font-size: clamp(1.65rem,3vw,2.25rem);
+}
+
+.uplink-results {
+    list-style: none;
+    margin-top: 14px;
+    padding: 0;
+}
+
+.uplink-results li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.uplink-results time {
+    margin-inline-start: auto;
+    font-size: .8rem;
+    white-space: nowrap;
+}
+
+.uplink-link {
+    display: block;
+    width: fit-content;
+    margin: 8px 0;
+    text-decoration: underline;
+    text-underline-offset: .22em;
+}
+
+.uplink-api {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+@media (max-width: 640px) {
+    .uplink-activity {
+        grid-template-columns: 1fr;
+    }
+}
