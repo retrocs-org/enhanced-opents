@@ -1,18 +1,18 @@
 :root {
     color-scheme: dark;
-    --paper: #f2f5e8;
-    --muted: #a9c2c2;
-    --base: #091a22;
-    --panel: #102a32;
-    --line: #2b4b53;
-    --metal: #416870;
-    --lime: #c3fa86;
-    --gdi: #ffcb76;
-    --nod: #ff8e87;
+    --paper: #edf5f2;
+    --muted: #a6b7c5;
+    --base: #080d15;
+    --panel: #111c28;
+    --line: #273848;
+    --metal: #405a68;
+    --lime: #9ef4a6;
+    --gdi: #ffc477;
+    --nod: #ff8988;
     --display: "Arial Narrow", "Franklin Gothic Medium", system-ui, sans-serif;
     --console: ui-monospace, Consolas, monospace;
-    --panel-surface: linear-gradient(150deg,#173a43,var(--panel) 72%);
-    --panel-shadow: 0 8px 22px #04121740;
+    --panel-surface: linear-gradient(150deg,#172735,var(--panel) 72%);
+    --panel-shadow: 0 8px 22px #03070d60;
 }
 
 * {
@@ -26,8 +26,8 @@ html {
 body {
     margin: 0;
     background:
-        radial-gradient(ellipse at 85% 12%,#17404b 0%,transparent 48rem),
-        radial-gradient(ellipse at 10% 45%,#102c39 0%,transparent 55rem),
+        radial-gradient(ellipse at 85% 12%,#172b39 0%,transparent 48rem),
+        radial-gradient(ellipse at 10% 45%,#101b2c 0%,transparent 55rem),
         var(--base);
     color: var(--paper);
     font: 16px/1.55 system-ui,sans-serif;
@@ -87,27 +87,20 @@ nav,.footer div {
 }
 
 .brand {
-    display: flex;
+    display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
-    gap: 11px;
-    font-size: 1.23rem;
-    font-weight: 780;
+    gap: clamp(7px,1.4vw,12px);
+    font: 780 clamp(1rem,2.2vw,1.32rem)/1 var(--display);
     letter-spacing: -.025em;
+    white-space: nowrap;
 }
 
-.mark {
-    flex: 0 0 18px;
-    height: 18px;
-    border: 2px solid var(--lime);
-    transform: rotate(45deg);
-    position: relative;
-}
-
-.mark:after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    background: var(--lime);
+.brand-emblem {
+    display: block;
+    width: clamp(34px,5vw,42px);
+    height: auto;
+    flex: none;
 }
 
 .hero {
@@ -183,7 +176,7 @@ h3 {
     background:
         repeating-linear-gradient(0deg,transparent 0 31px,#9db8ad17 31px 32px),
         repeating-linear-gradient(90deg,transparent 0 31px,#9db8ad17 31px 32px),
-        radial-gradient(ellipse at 48% 44%,#174652,#0a202d 85%);
+        radial-gradient(ellipse at 48% 44%,#173740,#0a1724 85%);
 }
 
 .map-region,.map-land {
@@ -193,7 +186,7 @@ h3 {
 }
 
 .map-region {
-    --surface: #396063;
+    --surface: #32535e;
 }
 
 .map-region.gdi {
@@ -246,7 +239,7 @@ h3 {
     padding: .45rem .65rem;
     border: 1px solid var(--faction);
     border-radius: 5px;
-    background: #102631;
+    background: #111d2b;
     color: var(--paper);
     font-size: clamp(.76rem,1.7vw,1rem);
     line-height: 1.25;
@@ -583,6 +576,10 @@ tr+tr td,tbody tr:first-child td {
     font-weight: 750;
 }
 
+.site-header .top {
+    flex-wrap: wrap;
+}
+
 .site-header .top nav {
     flex-wrap: wrap;
     gap: 6px clamp(10px,1.8vw,20px);
@@ -613,10 +610,10 @@ tr+tr td,tbody tr:first-child td {
     min-height: clamp(390px,47vw,590px);
     padding: clamp(30px,6vw,72px) 0;
     background:
-        linear-gradient(90deg,#091a22f5 0%,#0b2129cf 36%,#193c4924 78%),
+        linear-gradient(90deg,#080d15f5 0%,#0c141ecf 36%,#11233424 78%),
         linear-gradient(0deg,var(--base),transparent 61%),
         url('frontier-dusk.webp') center 53% / cover,
-        #173a43;
+        #172735;
 }
 
 .overview-hero h1 {
@@ -645,7 +642,7 @@ tr+tr td,tbody tr:first-child td {
     .overview-hero {
         background-position: center, center, 61% center;
         background-image:
-            linear-gradient(90deg,#091a22ee,#0b21298f),
+            linear-gradient(90deg,#080d15ee,#0c141e8f),
             linear-gradient(0deg,var(--base),transparent 61%),
             url('frontier-dusk.webp');
     }
@@ -825,7 +822,7 @@ tr+tr td,tbody tr:first-child td {
     padding: clamp(20px,4vw,38px);
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: linear-gradient(135deg,#12363e,var(--base));
+    background: linear-gradient(135deg,#162a36,var(--base));
     scroll-margin-top: 18px;
 }
 
@@ -842,7 +839,7 @@ tr+tr td,tbody tr:first-child td {
     border: 1px solid var(--metal);
     border-radius: 12px;
     background:
-        linear-gradient(90deg,#0e2732 10%,#0e2732de 48%,#0e27324f),
+        linear-gradient(90deg,#0e1925 10%,#0e1925de 48%,#0e19254f),
         url('frontier-dusk.webp') right 48% / cover,
         var(--panel);
 }

@@ -53,7 +53,7 @@ function commandUplinkNav(string $current, string $view = ''): void
 <a class="skip" href="#main">Skip to content</a>
 <header class="shell site-header">
 <div class="top">
-<a class="brand" href="./"><span class="mark" aria-hidden="true"></span>Enhanced OpenTS</a>
+<a class="brand" href="./"><img class="brand-emblem" src="assets/opents-faction-emblem.webp" width="42" height="42" alt=""><span>Enhanced OpenTS</span></a>
 <nav aria-label="Main navigation">
 <?php foreach ($main as $url => $label): ?>
 <a href="<?= $url ?>"<?= $current === $url ? ' aria-current="page"' : '' ?><?= $showModes && $url === 'command-uplink.php' ? ' class="uplink-parent"' : '' ?>><?= $label ?></a>
