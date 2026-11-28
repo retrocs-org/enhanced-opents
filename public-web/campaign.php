@@ -23,6 +23,35 @@ function query(PDO $db, string $sql, array $params = []): PDOStatement
     return $statement;
 }
 
+function frontierChallengers(string $id, array $owners): array
+{
+    $neighbors = [
+        'river-crossing' => ['central-basin'],
+        'central-basin' => ['river-crossing', 'ridge-line'],
+        'ridge-line' => ['central-basin'],
+    ];
+    $home = ['GDI' => 'river-crossing', 'Nod' => 'ridge-line'];
+    $challengers = [];
+    foreach ($home as $faction => $homeTerritory) {
+        if (($owners[$id] ?? null) === $faction) {
+            continue;
+        }
+        if (!in_array($faction, $owners, true)) {
+            if ($id === $homeTerritory) {
+                $challengers[] = $faction;
+            }
+            continue;
+        }
+        foreach ($neighbors[$id] ?? [] as $neighbor) {
+            if (($owners[$neighbor] ?? null) === $faction) {
+                $challengers[] = $faction;
+                break;
+            }
+        }
+    }
+    return $challengers;
+}
+
 function snapshot(PDO $db): array
 {
     $territories = query($db, <<<'SQL'
@@ -31,6 +60,11 @@ function snapshot(PDO $db): array
           ON b.active_territory = t.id AND b.expires_at > ?
         ORDER BY t.sort_order
         SQL, [time()])->fetchAll();
+    $owners = array_column($territories, 'owner', 'id');
+    foreach ($territories as &$territory) {
+        $territory['challengers'] = frontierChallengers($territory['id'], $owners);
+    }
+    unset($territory);
     $history = $db->query(<<<'SQL'
         SELECT b.id, t.name AS territory, b.map_name AS map, b.status, b.winner, b.reason, b.finished_at
         FROM wdt_battle b JOIN wdt_territory t ON t.id = b.territory_id
@@ -46,10 +80,14 @@ function expire(PDO $db, string $id, int $now): void
         WHERE active_territory = ? AND expires_at <= ?", [$now, $id, $now]);
 }
 
-function withTerritory(PDO $db, string $id, Closure $operation): array
+function withTerritory(PDO $db, string $id, Closure $operation, bool $lockFront = false): array
 {
     $db->beginTransaction();
     try {
+        if ($lockFront) {
+            // Lock ownership before reading the front so concurrent captures cannot change eligibility.
+            $db->query('SELECT id FROM wdt_territory ORDER BY id FOR UPDATE')->fetchAll();
+        }
         $territory = query($db, 'SELECT * FROM wdt_territory WHERE id = ? FOR UPDATE', [$id])->fetch();
         if ($territory) {
             $now = time();
@@ -99,6 +137,10 @@ function reserve(PDO $db, array $body): array
         if ($existing !== false) {
             return [409, ['error' => 'Territory already has an active battle.', 'battle_id' => $existing]];
         }
+        $owners = $db->query('SELECT id, owner FROM wdt_territory')->fetchAll(PDO::FETCH_KEY_PAIR);
+        if (!frontierChallengers($id, $owners)) {
+            return [409, ['error' => 'This territory is behind the front line. Choose an open challenge.']];
+        }
         $battle = bin2hex(random_bytes(16));
         $map = $territory['map_name'];
         $expires = $now + 7200;
@@ -113,7 +155,7 @@ function reserve(PDO $db, array $body): array
             $invites[$faction] = $token;
         }
         return [201, ['invites' => $invites, 'id' => $battle, 'territory' => $id, 'map' => $map, 'factions' => ['GDI', 'Nod'], 'status' => 'reserved', 'expires_at' => $expires]];
-    });
+    }, lockFront: true);
 }
 
 function transition(PDO $db, string $id, array $body, string $operation, ?string $operator = null): array

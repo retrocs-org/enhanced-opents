@@ -38,6 +38,16 @@ $battleLabels = [
     'aborted' => 'Aborted',
     'expired' => 'Expired',
 ];
+function territoryStatus(array $territory, array $battleLabels): string
+{
+    $status = $territory['battle_status'];
+    if ($status !== null) {
+        return $battleLabels[$status] ?? $status;
+    }
+    return $territory['challengers']
+        ? implode(' / ', $territory['challengers']) . ' can challenge'
+        : 'Behind the front';
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -84,9 +94,7 @@ $battleLabels = [
 <a class="map-marker" href="#<?= h($territory['id']) ?>">
 <strong><?= h($territory['name']) ?></strong>
 <span class="map-owner"><?= h($territory['owner']) ?></span>
-<?php if ($territory['battle_status'] !== null): ?>
-<span class="map-battle"><?= h($battleLabels[$territory['battle_status']] ?? $territory['battle_status']) ?></span>
-<?php endif; ?>
+<span class="map-battle"><?= h(territoryStatus($territory, $battleLabels)) ?></span>
 </a>
 </div>
 <?php endforeach; ?>
@@ -97,7 +105,7 @@ $battleLabels = [
 <div class="territory-art <?= h($territory['id']) ?>" aria-hidden="true"></div>
 <div class="card-body"><p class="owner"><span></span><?= h($territory['owner']) ?></p>
 <h3><?= h($territory['name']) ?></h3>
-<div class="card-foot"><span><?= h($territory['map']) ?></span><span><?= h($battleLabels[$territory['battle_status'] ?? ''] ?? 'Open') ?></span></div></div>
+<div class="card-foot"><span><?= h($territory['map']) ?></span><span><?= h(territoryStatus($territory, $battleLabels)) ?></span></div></div>
 </article>
 <?php endforeach; ?>
 </div><?php endif; ?>

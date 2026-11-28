@@ -26,6 +26,16 @@ to share directly. Player account actions require an account service.
    For local development, run `php -S 127.0.0.1:8080 -t public-web`
    from the project root. Serve the live site over HTTPS.
 
+## Frontier challenges
+
+River Crossing borders Central Basin, which borders Ridge Line. A faction
+can challenge a territory it does not own if it owns a neighboring territory.
+A faction with no territory can challenge its original home territory
+(River Crossing for GDI, Ridge Line for Nod). Each battle still has one seat
+per faction. The host may only reserve a territory that has a challenger
+and no active reservation. The public snapshot lists eligible challengers
+alongside the battle status, and the map shows the active battle first.
+
 ## Battle lifecycle
 
 For an existing pilot database, pause campaign writes and apply
