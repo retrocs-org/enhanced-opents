@@ -29,8 +29,8 @@ sitePage('Command Uplink', 'command-uplink.php');
 </section>
 <section class="uplink-feature" aria-labelledby="uplink-campaign">
 <div>
-<p class="eyebrow">Current campaign · <?= h($campaign['name'] ?? 'Frontier') ?></p>
-<h2 id="uplink-campaign">World Domination Tour</h2>
+<p class="eyebrow">Current campaign</p>
+<h2 id="uplink-campaign"><?= h($campaign['name'] ?? 'Frontier') ?></h2>
 <p>GDI and Nod fight for control of Frontier. Follow the front line and see which territories are open to challenge.</p>
 <a class="button" href="world-domination.php">View territory map <span aria-hidden="true">→</span></a>
 </div>

@@ -36,7 +36,7 @@ function h(string $text): string
 <body>
 <?php commandUplinkNav('lobby.php'); ?>
 <main class="shell section" id="main">
-<p><a href="world-domination.php">← World Domination Tour</a></p><h1 class="utility-title">Private match lobby</h1>
+<p><a href="world-domination.php">← Frontier</a></p><h1 class="utility-title">Private match lobby</h1>
 <?php if ($error): ?><p class="empty" role="alert"><?= h($error) ?></p><?php endif; ?>
 <?php if ($seat): ?>
 <article class="operator-card"><p class="eyebrow"><?= h($seat['faction']) ?></p>

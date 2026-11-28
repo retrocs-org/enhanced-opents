@@ -606,22 +606,29 @@ tr+tr td,tbody tr:first-child td {
 .overview-hero {
     position: relative;
     display: grid;
-    align-items: end;
+    align-items: center;
     min-height: clamp(390px,47vw,590px);
     padding: clamp(30px,6vw,72px) 0;
     background:
-        linear-gradient(90deg,#080d15f5 0%,#0c141ecf 36%,#11233424 78%),
+        radial-gradient(ellipse at center,#080d15eb 2%,#0c141e9e 65%,#0c141e4d),
         linear-gradient(0deg,var(--base),transparent 61%),
         url('frontier-dusk.webp') center 53% / cover,
         #172735;
 }
 
+.overview-copy {
+    text-align: center;
+}
+
 .overview-hero h1 {
-    max-width: 12ch;
+    font-size: clamp(1.5rem,8vw,6.4rem);
+    white-space: nowrap;
     text-shadow: 0 2px 16px #000b;
 }
 
 .overview-hero .intro {
+    max-width: 65ch;
+    margin-inline: auto;
     color: var(--paper);
 }
 
@@ -629,6 +636,7 @@ tr+tr td,tbody tr:first-child td {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 16px 24px;
     margin-top: 24px;
 }

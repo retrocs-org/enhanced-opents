@@ -90,7 +90,7 @@ try {
 <body>
 <?php commandUplinkNav('operator.php'); ?>
 <main class="shell section" id="main">
-<p><a href="world-domination.php">← World Domination Tour</a></p>
+<p><a href="world-domination.php">← Frontier</a></p>
 <h1 class="utility-title">Operator queue</h1>
 <p>Signed in as <?= h($operator) ?></p>
 <?php if ($notice): ?><p class="empty" role="status"><?= h($notice) ?></p><?php endif; ?>

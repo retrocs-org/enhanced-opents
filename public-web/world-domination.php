@@ -54,15 +54,15 @@ function territoryStatus(array $territory, array $battleLabels): string
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Follow territory control and active battles in the Enhanced OpenTS World Domination Tour.">
-<title>World Domination Tour · Enhanced OpenTS</title>
+<meta name="description" content="Follow territory control and active battles in the Enhanced OpenTS Frontier campaign.">
+<title>Frontier · Enhanced OpenTS</title>
 <link rel="stylesheet" href="assets/site.css?v=<?= filemtime(__DIR__ . '/assets/site.css') ?>">
 </head>
 <body>
 <?php commandUplinkNav('world-domination.php'); ?>
 <main class="shell" id="main">
 <section class="hero">
-<p class="eyebrow">World Domination Tour</p>
+<p class="eyebrow">Multiplayer campaign</p>
 <h1><?= h($campaign['name'] ?? 'Frontier') ?></h1>
 <p class="intro">GDI and Nod fight for control of Frontier. Only an operator-confirmed win changes territory ownership.</p>
 <?php if ($campaign): ?>

@@ -33,7 +33,7 @@ function sitePageEnd(): void
 function commandUplinkNav(string $current, string $view = ''): void
 {
     $pages = [
-        'world-domination.php' => 'World Domination Tour',
+        'world-domination.php' => 'Frontier',
         'servers.php' => 'Public Server Browser',
     ];
     $main = [

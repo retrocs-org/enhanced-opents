@@ -19,7 +19,7 @@ sitePage('Features', 'features.php');
 <h2 id="enhanced-title">Enhanced OpenTS</h2>
 <div class="overview-grid">
 <article class="operator-card">
-<p class="eyebrow">World Domination Tour</p>
+<p class="eyebrow">Multiplayer campaign</p>
 <h3>Fight for Frontier</h3>
 <p>GDI and Nod compete across River Crossing, Central Basin, and Ridge Line in two-player battles. A territory stays reserved while a match is being arranged, played, or reviewed. Only an operator-confirmed win changes ownership.</p>
 <a href="world-domination.php">View the season map →</a>
@@ -32,7 +32,7 @@ sitePage('Features', 'features.php');
 <article class="operator-card">
 <p class="eyebrow">Command Uplink</p>
 <h3>Follow the season</h3>
-<p>The public map shows live ownership, active battles, faction wins, and recent results. The in-game Tour menu can show territories and recent results when configured. Public Server Listing and Leaderboards have dedicated views awaiting a server directory and match data.</p>
+<p>The public map shows live ownership, active battles, faction wins, and recent results. The in-game Frontier menu can show territories and recent results when configured. Public Server Listing and Leaderboards have dedicated views awaiting a server directory and match data.</p>
 <a href="command-uplink.php">Open Command Uplink →</a>
 </article>
 <article class="operator-card">
@@ -54,7 +54,7 @@ sitePage('Features', 'features.php');
 <tr><th scope="row">Platforms</th><td>Originally released for Windows.</td><td>OpenTS provides Windows builds. Enhanced OpenTS adds a native macOS port for Apple silicon and Intel.</td></tr>
 <tr><th scope="row">Display</th><td>Display modes from the retail Windows release.</td><td>Modern resolutions, scaling controls and Metal rendering on macOS.</td></tr>
 <tr><th scope="row">Maps</th><td>Scenario maps shipped with the game and expansion.</td><td>An in-game editor can create or edit maps and save multiplayer scenarios.</td></tr>
-<tr><th scope="row">Multiplayer</th><td>Standalone multiplayer matches.</td><td>World Domination Tour’s Frontier campaign tracks territory control and confirmed match results.</td></tr>
+<tr><th scope="row">Multiplayer</th><td>Standalone multiplayer matches.</td><td>The Frontier campaign tracks territory control and confirmed match results.</td></tr>
 </tbody>
 </table></div>
 </section>

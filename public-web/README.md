@@ -2,8 +2,8 @@
 
 The public site has Overview, Features, Downloads and Sign in pages.
 Command Uplink previews live campaign control, active battles and recent
-results, with links to the World Domination Tour and Public Server Browser.
-The Tour reads live Frontier territory owners, active battles, confirmed
+results, with links to Frontier and the Public Server Browser.
+The Frontier page reads live territory owners, active battles, confirmed
 wins and recent results from MariaDB. Public Server Listing and Leaderboards
 are unavailable until a public directory and match results are connected.
 The invite-only check-in remains available at `lobby.php` for match hosts
@@ -69,6 +69,6 @@ channel. Players enter it at `lobby.php`, which records check-in. The match
 host separately records actual game connections through the joined route.
 
 Set `OPENTS_WDT_API` to the site's HTTPS `api.php` URL in the game
-environment to enable the **World Domination Tour** menu. It shows the
+environment to enable the **Frontier** menu. It shows the
 three territories and recent results. The game uses the system curl
 executable for this public read. The private web lobby handles check-in.
